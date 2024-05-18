@@ -33,7 +33,7 @@ interface ILocalEntrySC {
     function register(bytes[] calldata pubkeys) external;
 
     /**
-     * @notice Returns public keys of the AA-transformer
+     * @notice Returns public keys of a specified AA-transformer
      * @param transformer The address of the AA-transformer
      * @return pubkeys Public keys of the AA-transformer
      */
