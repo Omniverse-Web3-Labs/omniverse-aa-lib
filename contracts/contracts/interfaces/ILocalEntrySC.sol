@@ -17,9 +17,9 @@ enum TxType {
  * @notice Signed omniverse transaction
  */
 struct SignedTx {
-    TxType txType,
-    bytes txData,
-    bytes signature
+    TxType txType;
+    bytes txData;
+    bytes signature;
 }
 
 /**
@@ -30,7 +30,7 @@ interface ILocalEntrySC {
      * @notice The AA-transformer registers pubkeys to local entry contract
      * @param pubkeys Public keys of AA transformer
      */
-    function register(bytes[] calldata pubkeys) external;
+    function register(bytes[] calldata pubkeys, bytes[] calldata signatures) external;
 
     /**
      * @notice Returns public keys of a specified AA-transformer

@@ -7,8 +7,8 @@ import "./ILocalEntrySC.sol";
  * @notice Signed omniverse transaction
  */
 struct UnsignedTx {
-    TxType txType,
-    bytes txData
+    TxType txType;
+    bytes txData;
 }
 
 /**
@@ -20,7 +20,7 @@ interface IAATransformer {
      * @param txid The transaction id of which transaction to be submitted
      * @param signedTx The signed transaction encoded in bytes
      */
-    function submitTx(txid: bytes32, SignedTx calldata signedTx) external;
+    function submitTx(bytes32 txid, SignedTx calldata signedTx) external;
 
     /**
      * @notice Returns public keys of the AA-transformer
@@ -32,7 +32,7 @@ interface IAATransformer {
      * @notice Returns the next unsigned transaction which will be signed
      * @return unsignedTx The next unsigned transaction
      */
-    function getUnsignedTx() external view returns (UnsignedTx unsignedTx);
+    function getUnsignedTx() external view returns (UnsignedTx memory unsignedTx);
 
     /**
      * @notice Handles an omniverse transaction sent from global exec server
