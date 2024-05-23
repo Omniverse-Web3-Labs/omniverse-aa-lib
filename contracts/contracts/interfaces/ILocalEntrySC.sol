@@ -17,6 +17,7 @@ enum TxType {
  * @notice Signed omniverse transaction
  */
 struct SignedTx {
+    bytes32 txid;
     TxType txType;
     bytes txData;
     bytes signature;
@@ -37,27 +38,27 @@ interface ILocalEntrySC {
      * @param transformer The address of the AA-transformer
      * @return pubkeys Public keys of the AA-transformer
      */
-    function getPubkeys(address transformer) external view returns (bytes memory pubkeys);
+    function getPubkeys(address transformer) external view returns (bytes[] memory pubkeys);
 
     /**
      * @notice The AA-transformer submits signed tx to the local entry contract
-     * @param signedTx The encoded signed transaction data
+     * @param signedTx Signed omniverse transaction
      */
-    function submitTx(bytes calldata signedTx) external;
+    function submitTx(SignedTx calldata signedTx) external;
 
     /**
      * @notice Returns transaction data of specified `txid`
      * @param txid The transaction id of which transaction to be queried
      * @return transformer The AA-transform which transaction is sent from
-     * @return tx The signed transction
+     * @return signedTx The signed transction
      */
-    function getTransaction(bytes32 txid) external view returns (address transformer, SignedTx memory tx);
+    function getTransaction(bytes32 txid) external view returns (address transformer, SignedTx memory signedTx);
 
     /**
      * @notice Returns transaction data of specified `index`
      * @param index The index of transaction to be queried, according to time sequence
      * @return transformer The AA-transform which transaction is sent from
-     * @return tx The signed transction
+     * @return signedTx The signed transction
      */
-    function getTransactionByIndex(uint256 index) external view returns (address transformer, SignedTx memory tx);
+    function getTransactionByIndex(uint256 index) external view returns (address transformer, SignedTx memory signedTx);
 }
