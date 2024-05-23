@@ -7,14 +7,14 @@ import {
   import hre from "hardhat";
   import ecdsa from 'secp256k1';
 
-  const SIG_PREFIX = "Register to AATransformer:";
+  const SIG_PREFIX = "Register to Omniverse AA:";
   const TX_ID = "0x1234567812345678123456781234567812345678123456781234567812345678";
   const TX_DATA = "0x12345678";
   const SIGNATURE = "0x1234567812345678123456781234567812345678123456781234567812345678";
   
-  describe("LocalEntrySC", function () {
+  describe("LocalEntry", function () {
     async function deployLocalEntrySC() {
-      const LocalEntrySC = await hre.ethers.getContractFactory("LocalEntrySC");
+      const LocalEntrySC = await hre.ethers.getContractFactory("LocalEntry");
       const localEntry = await LocalEntrySC.deploy();
       
       return { localEntry };
@@ -128,7 +128,6 @@ import {
             const { localEntry } = await loadFixture(deployLocalEntrySCWithPublicKeys);
         
             let signers = await hre.ethers.getSigners();
-            let pks = await localEntry.connect(signers[2]).getPubkeysLenght();
             await expect(localEntry.connect(signers[2]).submitTx({txid: TX_ID, txType: 0, txData: TX_DATA, signature: SIGNATURE})).to.be.revertedWithCustomError(
               localEntry,
               "SenderNotRegistered"

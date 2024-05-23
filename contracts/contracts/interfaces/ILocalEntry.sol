@@ -26,22 +26,22 @@ struct SignedTx {
 /**
  * @notice Interface of local entry contract
  */
-interface ILocalEntrySC {
+interface ILocalEntry {
     /**
-     * @notice The AA-transformer registers pubkeys to local entry contract
-     * @param pubkeys Public keys of AA transformer
+     * @notice The AA contract registers pubkeys to local entry contract
+     * @param pubkeys Public keys of AA contract
      */
     function register(bytes[] calldata pubkeys, bytes[] calldata signatures) external;
 
     /**
-     * @notice Returns public keys of a specified AA-transformer
-     * @param transformer The address of the AA-transformer
-     * @return pubkeys Public keys of the AA-transformer
+     * @notice Returns public keys of a specified AA contract
+     * @param AAContract The address of the AA contract
+     * @return pubkeys Public keys of the AA contract
      */
-    function getPubkeys(address transformer) external view returns (bytes[] memory pubkeys);
+    function getPubkeys(address AAContract) external view returns (bytes[] memory pubkeys);
 
     /**
-     * @notice The AA-transformer submits signed tx to the local entry contract
+     * @notice The AA contract submits signed tx to the local entry contract
      * @param signedTx Signed omniverse transaction
      */
     function submitTx(SignedTx calldata signedTx) external;
@@ -49,16 +49,16 @@ interface ILocalEntrySC {
     /**
      * @notice Returns transaction data of specified `txid`
      * @param txid The transaction id of which transaction to be queried
-     * @return transformer The AA-transform which transaction is sent from
+     * @return AAContract The AA contract which transaction is sent from
      * @return signedTx The signed transction
      */
-    function getTransaction(bytes32 txid) external view returns (address transformer, SignedTx memory signedTx);
+    function getTransaction(bytes32 txid) external view returns (address AAContract, SignedTx memory signedTx);
 
     /**
      * @notice Returns transaction data of specified `index`
      * @param index The index of transaction to be queried, according to time sequence
-     * @return transformer The AA-transform which transaction is sent from
+     * @return AAContract The AA contract which transaction is sent from
      * @return signedTx The signed transction
      */
-    function getTransactionByIndex(uint256 index) external view returns (address transformer, SignedTx memory signedTx);
+    function getTransactionByIndex(uint256 index) external view returns (address AAContract, SignedTx memory signedTx);
 }

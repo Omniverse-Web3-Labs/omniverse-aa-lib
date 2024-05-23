@@ -2,17 +2,17 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "./interfaces/ILocalEntrySC.sol";
+import "./interfaces/ILocalEntry.sol";
 import "./BytesUtils.sol";
 
 string constant PERSONAL_SIGN_PREFIX = "\x19Ethereum Signed Message:\n";
-string constant OMNIVERSE_AA_SC_PREFIX = "Register to AATransformer:";
+string constant OMNIVERSE_AA_SC_PREFIX = "Register to Omniverse AA:";
 
-contract LocalEntrySC is ILocalEntrySC {
-    mapping(address => bytes[]) AASCMapToPubkeys;
-    mapping(bytes => address) pubkeyMapToAASC;
+contract LocalEntry is ILocalEntry {
+    mapping(address => bytes[]) omniverseAAMapToPubkeys;
+    mapping(bytes => address) pubkeyMapToOmniverseAA;
     mapping(bytes32 => SignedTx) txidMapToSignedOmniverseTx;
-    mapping(bytes32 => address) txidMapToTransformerSC;
+    mapping(bytes32 => address) txidMapToOmniverseAA;
     bytes32[] txidArray;
 
     /**
@@ -24,9 +24,9 @@ contract LocalEntrySC is ILocalEntrySC {
      * @notice Throws when it failed to verify signatures
      * @param publicKey The public key matching the signature
      * @param signature The signature which failed to verify
-     * @param omniverseAASC The omniverse AA contract address
+     * @param omniverseAA The omniverse AA contract address
      */
-    error FailedToVerifySignature(bytes publicKey, bytes signature, address omniverseAASC);
+    error FailedToVerifySignature(bytes publicKey, bytes signature, address omniverseAA);
 
     /**
      * @notice Throws when any public key already registered
@@ -57,8 +57,8 @@ contract LocalEntrySC is ILocalEntrySC {
     }
 
     /**
-     * @notice The AA-transformer registers pubkeys to local entry contract
-     * @param pubkeys Public keys of AA transformer
+     * @notice The AA contract registers pubkeys to local entry contract
+     * @param pubkeys Public keys of AA contract
      */
     function register(bytes[] calldata pubkeys, bytes[] calldata signatures) external {
         if (pubkeys.length != signatures.length) {
@@ -66,7 +66,7 @@ contract LocalEntrySC is ILocalEntrySC {
         }
 
         for (uint i = 0; i < pubkeys.length; i++) {
-            if (pubkeyMapToAASC[pubkeys[i]] != address(0)) {
+            if (pubkeyMapToOmniverseAA[pubkeys[i]] != address(0)) {
                 revert PublicKeyAlreadyRegistered(pubkeys[i]);
             }
         }
@@ -80,26 +80,26 @@ contract LocalEntrySC is ILocalEntrySC {
             if (pkAddress != senderAddress) {
                 revert FailedToVerifySignature(pubkeys[i], signatures[i], msg.sender);
             }
-            AASCMapToPubkeys[msg.sender].push(pubkeys[i]);
-            pubkeyMapToAASC[pubkeys[i]] = msg.sender;
+            omniverseAAMapToPubkeys[msg.sender].push(pubkeys[i]);
+            pubkeyMapToOmniverseAA[pubkeys[i]] = msg.sender;
         }
     }
 
     /**
-     * @notice Returns public keys of a specified AA-transformer
-     * @param transformer The address of the AA-transformer
-     * @return pubkeys Public keys of the AA-transformer
+     * @notice Returns public keys of a specified AA contract
+     * @param omniverseAA The address of the AA contract
+     * @return pubkeys Public keys of the AA contract
      */
-    function getPubkeys(address transformer) external view returns (bytes[] memory pubkeys) {
-        return AASCMapToPubkeys[transformer];
+    function getPubkeys(address omniverseAA) external view returns (bytes[] memory pubkeys) {
+        return omniverseAAMapToPubkeys[omniverseAA];
     }
 
     /**
-     * @notice The AA-transformer submits signed tx to the local entry contract
+     * @notice The AA Contract submits signed tx to the local entry contract
      * @param signedTx Signed omniverse transaction
      */
     function submitTx(SignedTx calldata signedTx) external {
-        if (AASCMapToPubkeys[msg.sender].length == 0) {
+        if (omniverseAAMapToPubkeys[msg.sender].length == 0) {
             revert SenderNotRegistered(msg.sender);
         }
 
@@ -117,7 +117,7 @@ contract LocalEntrySC is ILocalEntrySC {
         stx.txData = signedTx.txData;
         stx.signature = signedTx.signature;
 
-        txidMapToTransformerSC[signedTx.txid] = msg.sender;
+        txidMapToOmniverseAA[signedTx.txid] = msg.sender;
 
         txidArray.push(signedTx.txid);
     }
@@ -125,23 +125,23 @@ contract LocalEntrySC is ILocalEntrySC {
     /**
      * @notice Returns transaction data of specified `txid`
      * @param txid The transaction id of which transaction to be queried
-     * @return transformer The AA-transform which transaction is sent from
+     * @return omniverseAA The Omniverse AA contract which transaction is sent from
      * @return signedTx The signed transction
      */
-    function getTransaction(bytes32 txid) public view returns (address transformer, SignedTx memory signedTx) {
-        transformer = txidMapToTransformerSC[txid];
+    function getTransaction(bytes32 txid) public view returns (address omniverseAA, SignedTx memory signedTx) {
+        omniverseAA = txidMapToOmniverseAA[txid];
         signedTx = txidMapToSignedOmniverseTx[txid];
     }
 
     /**
      * @notice Returns transaction data of specified `index`
      * @param index The index of transaction to be queried, according to time sequence
-     * @return transformer The AA-transform which transaction is sent from
+     * @return omniverseAA The Omniverse AA contract which transaction is sent from
      * @return signedTx The signed transction
      */
-    function getTransactionByIndex(uint256 index) external view returns (address transformer, SignedTx memory signedTx) {
+    function getTransactionByIndex(uint256 index) external view returns (address omniverseAA, SignedTx memory signedTx) {
         bytes32 txid = txidArray[index];
-        (transformer, signedTx)  = getTransaction(txid);
+        (omniverseAA, signedTx)  = getTransaction(txid);
     }
 
     /**

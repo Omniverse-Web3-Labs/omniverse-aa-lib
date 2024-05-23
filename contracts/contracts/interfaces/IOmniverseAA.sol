@@ -1,30 +1,31 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import "./ILocalEntrySC.sol";
+import "./ILocalEntry.sol";
 
 /**
  * @notice Signed omniverse transaction
  */
 struct UnsignedTx {
+    bytes32 txid;
     TxType txType;
     bytes txData;
 }
 
 /**
- * @notice Interface of AA transformer contract
+ * @notice Interface of Omniverse AA contract
  */
-interface IAATransformer {
+interface IOmniverseAA {
     /**
-     * @notice AA signer submits signed transaction to AA transformer
+     * @notice AA signer submits signed transaction to AA contract
      * @param txid The transaction id of which transaction to be submitted
      * @param signedTx The signed transaction encoded in bytes
      */
     function submitTx(bytes32 txid, SignedTx calldata signedTx) external;
 
     /**
-     * @notice Returns public keys of the AA-transformer
-     * @return pubkeys Public keys of the AA-transformer
+     * @notice Returns public keys of the AA contract
+     * @return pubkeys Public keys of the AA contract
      */
     function getPubkeys() external view returns (bytes memory pubkeys);
 
