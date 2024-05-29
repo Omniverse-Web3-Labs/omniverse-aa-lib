@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ILocalEntry.sol";
-import "./BytesUtils.sol";
+import "./lib/Utils.sol";
 
 string constant PERSONAL_SIGN_PREFIX = "\x19Ethereum Signed Message:\n";
 string constant OMNIVERSE_AA_SC_PREFIX = "Register to Omniverse AA:";
@@ -73,10 +73,10 @@ contract LocalEntry is ILocalEntry {
 
         // verify signatures
         for (uint i = 0; i < pubkeys.length; i++) {
-            bytes memory rawData = abi.encodePacked(OMNIVERSE_AA_SC_PREFIX, "0x", BytesUtils.bytesToHexString(abi.encodePacked(msg.sender)));
+            bytes memory rawData = abi.encodePacked(OMNIVERSE_AA_SC_PREFIX, "0x", Utils.bytesToHexString(abi.encodePacked(msg.sender)));
             bytes32 hash = keccak256(abi.encodePacked(PERSONAL_SIGN_PREFIX, bytes(Strings.toString(rawData.length)), rawData));
             address pkAddress = recoverAddress(hash, signatures[i]);
-            address senderAddress = pubKeyToAddress(pubkeys[i]);
+            address senderAddress = Utils.pubKeyToAddress(pubkeys[i]);
             if (pkAddress != senderAddress) {
                 revert FailedToVerifySignature(pubkeys[i], signatures[i], msg.sender);
             }
@@ -158,13 +158,5 @@ contract LocalEntry is ILocalEntry {
         }
         address recovered = ecrecover(_hash, v, r, s);
         return recovered;
-    }
-
-    /**
-     * @notice Convert the public key to evm address
-     */
-    function pubKeyToAddress(bytes memory _pk) public pure returns (address) {
-        bytes32 hash = keccak256(_pk);
-        return address(uint160(uint256(hash)));
     }
 }

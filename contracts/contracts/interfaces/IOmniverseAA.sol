@@ -6,11 +6,16 @@ import "./ILocalEntry.sol";
 /**
  * @notice Signed omniverse transaction
  */
-struct UnsignedTx {
+struct OmniverseTx {
     bytes32 txid;
     TxType txType;
     bytes txData;
 }
+
+uint128 constant GAS_FEE = 10;
+uint256 constant MAX_UTXOs = 100;
+bytes32 constant GAS_ASSET_ID = 0;
+bytes32 constant GAS_RECEIVER = hex"1234567812345678123456781234567812345678123456781234567812345678";
 
 /**
  * @notice Interface of Omniverse AA contract
@@ -18,26 +23,28 @@ struct UnsignedTx {
 interface IOmniverseAA {
     /**
      * @notice AA signer submits signed transaction to AA contract
-     * @param txid The transaction id of which transaction to be submitted
-     * @param signedTx The signed transaction encoded in bytes
+     * @param txIndex The transaction index of which transaction to be submitted
+     * @param signature The signature for the transaction
      */
-    function submitTx(bytes32 txid, SignedTx calldata signedTx) external;
+    function submitTx(uint256 txIndex, bytes calldata signature) external;
 
     /**
      * @notice Returns public keys of the AA contract
-     * @return pubkeys Public keys of the AA contract
+     * @return publicKey Public key of the AA contract
      */
-    function getPubkeys() external view returns (bytes memory pubkeys);
+    function getPubkey() external view returns (bytes32 publicKey);
 
     /**
      * @notice Returns the next unsigned transaction which will be signed
+     * @return txIndex The transaction index of which transaction to be signed
      * @return unsignedTx The next unsigned transaction
      */
-    function getUnsignedTx() external view returns (UnsignedTx memory unsignedTx);
+    function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTx memory unsignedTx);
 
     /**
      * @notice Handles an omniverse transaction sent from global exec server
-     * @param txid The transaction id of which transaction to be handled
+     * @param omniTx The transaction data to be handled
+     * @param merkleProof The merkle proof of omniverse transaction
      */
-    function handleOmniverseTx(bytes32 txid) external;
+    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof) external;
 }
