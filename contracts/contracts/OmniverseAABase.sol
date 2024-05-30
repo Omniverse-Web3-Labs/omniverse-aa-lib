@@ -7,6 +7,12 @@ import "./lib/Types.sol";
 import "./lib/EnumerableUTXOMap.sol";
 import "./lib/Utils.sol";
 
+uint128 constant GAS_FEE = 10;
+uint256 constant MAX_UTXO = 100;
+bytes32 constant GAS_ASSET_ID = 0;
+bytes32 constant GAS_RECEIVER = hex"1234567812345678123456781234567812345678123456781234567812345678";
+uint8 constant DECIMALS = 18;
+
 abstract contract OmniverseAABase is IOmniverseAA {
     using EnumerableUTXOMap for EnumerableUTXOMap.Bytes32ToUTXOMap;
 
@@ -26,6 +32,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
     mapping(bytes32 => EnumerableUTXOMap.Bytes32ToUTXOMap) assetIdMapToUTXOSet;
     // used to calculate Poseidon hash
     IPoseidon poseidon;
+    // system config
+    Types.SystemConfig sysConfig;
 
     /**
      * @notice Throws when sender is not registered as AA contract signer
@@ -61,7 +69,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         bytes32 _pubkey;
         assembly {
-            _pubkey := mload(uncompressedPublicKey)
+            _pubkey := mload(add(uncompressedPublicKey, 0x20))
         }
         pubkey = _pubkey;
         addrPubkey = Utils.pubKeyToAddress(uncompressedPublicKey);
@@ -72,6 +80,16 @@ abstract contract OmniverseAABase is IOmniverseAA {
             );
             assetIdMapToUTXOSet[utxos[i].assetId].set(key, utxos[i]);
         }
+
+        sysConfig = Types.SystemConfig(
+            Types.FeeConfig(
+                GAS_ASSET_ID,
+                GAS_RECEIVER,
+                GAS_FEE
+            ),
+            MAX_UTXO,
+            DECIMALS
+        );
     }
 
     /**
@@ -80,7 +98,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @param signature The signature for the transaction
      */
     function submitTx(uint256 txIndex, bytes calldata signature) external {
-        if (addrPubkey == msg.sender) {
+        if (addrPubkey != msg.sender) {
             revert SenderNotRegistered(msg.sender);
         }
 
@@ -97,6 +115,22 @@ abstract contract OmniverseAABase is IOmniverseAA {
         ILocalEntry(localEntry).submitTx(SignedTx(omniTx.txid, omniTx.txType, omniTx.txData, signature));
 
         nextTxIndex++;
+    }
+
+    /**
+     * @notice Returns UTXOs of an asset
+     * @param assetId The asset id of UTXOs to be queried
+     * @return UTXOs UTXOs with the asset id `assetId`
+     */
+    function getUTXOs(bytes32 assetId) external view returns (Types.UTXO[] memory UTXOs) {
+        EnumerableUTXOMap.Bytes32ToUTXOMap storage UTXOsOfAsset = assetIdMapToUTXOSet[assetId];
+        UTXOs = new Types.UTXO[](UTXOsOfAsset.length());
+        for (uint i = 0; i < UTXOs.length; i++) {
+            (, Types.UTXO memory utxo) = UTXOsOfAsset.at(i);
+            UTXOs[i] = utxo;
+        }
+
+        return UTXOs;
     }
 
     /**
@@ -161,7 +195,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     function _getGas(Types.Output[] memory extraOutputs) internal view returns (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) {
         // calculate needed gas fee
-        uint128 neededGasFee = GAS_FEE;
+        uint128 neededGasFee = sysConfig.feeConfig.amount;
         for (uint i = 0; i < extraOutputs.length; i++) {
             neededGasFee += extraOutputs[i].amount;
         }
@@ -169,7 +203,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
         // find gas UTXOs
         uint256 inputUTXONum = 0;
         uint128 inputGas = 0;
-        EnumerableUTXOMap.Bytes32ToUTXOMap storage gasUTXOs = assetIdMapToUTXOSet[GAS_ASSET_ID];
+        EnumerableUTXOMap.Bytes32ToUTXOMap storage gasUTXOs = assetIdMapToUTXOSet[sysConfig.feeConfig.assetId];
         for (uint i = 0; i < gasUTXOs.length(); i++) {
             (, Types.UTXO memory utxo) = gasUTXOs.at(i);
             inputGas += utxo.amount;
@@ -180,7 +214,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
         }
 
         if (inputGas < neededGasFee) {
-            revert TokenOfAAContractNotEnough(GAS_ASSET_ID);
+            revert TokenOfAAContractNotEnough(sysConfig.feeConfig.assetId);
         }
 
         // construct inputs
@@ -201,7 +235,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             // charge
             gasOutputs[extraOutputs.length + 1] = Types.Output(
                 pubkey,
-                neededGasFee - inputGas
+                inputGas - neededGasFee
             );
         }
         else {
@@ -215,8 +249,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         // gas fee
         gasOutputs[extraOutputs.length] = Types.Output(
-            GAS_RECEIVER,
-            GAS_FEE
+            sysConfig.feeConfig.receiver,
+            sysConfig.feeConfig.amount
         );
     }
 
@@ -269,7 +303,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             // charge
             outputs[outputsNeeded.length] = Types.Output(
                 pubkey,
-                neededAmount - inputAmount
+                inputAmount - neededAmount
             );
         }
         else {
@@ -301,11 +335,11 @@ abstract contract OmniverseAABase is IOmniverseAA {
         bytes memory txData = Utils.deployToBytes(deployTx);
         txid = Utils.calTxId(txData, poseidon);
 
-        if (gasInputs.length + gasOutputs.length > MAX_UTXOs) {
+        if (gasInputs.length + gasOutputs.length > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(gasInputs.length + gasOutputs.length);
         }
 
-        _updateUTXOs(GAS_ASSET_ID, txid, gasInputs, gasOutputs);
+        _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
     }
 
     /**
@@ -329,8 +363,12 @@ abstract contract OmniverseAABase is IOmniverseAA {
         bytes memory txData = Utils.MintToBytes(mintTx);
         txid = Utils.calTxId(txData, poseidon);
 
+        if (outputs.length + gasInputs.length + gasOutputs.length > sysConfig.maxTxUTXO) {
+            revert UTXONumberExceedLimit(outputs.length + gasInputs.length + gasOutputs.length);
+        }
+
         // update gas UTXOs
-        _updateUTXOs(GAS_ASSET_ID, txid, gasInputs, gasOutputs);
+        _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
 
         // update token UTXOs
         _updateUTXOs(assetId, txid, new Types.Input[](0), outputs);
@@ -345,7 +383,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     function _constructTransfer(bytes32 assetId, Types.Output[] memory expectedOutputs) internal returns (bytes32 txid, Types.Transfer memory transferTx) {
         uint256 UTXONumber = 0;
-        if (assetId == GAS_ASSET_ID) {
+        if (assetId == sysConfig.feeConfig.assetId) {
             (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) = _getGas(expectedOutputs);
 
             transferTx = Types.Transfer(
@@ -363,7 +401,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             txid = Utils.calTxId(txData, poseidon);
 
             // update gas UTXOs
-            _updateUTXOs(GAS_ASSET_ID, txid, gasInputs, gasOutputs);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
         }
         else {
             (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) = _getGas(new Types.Output[](0));
@@ -384,13 +422,13 @@ abstract contract OmniverseAABase is IOmniverseAA {
             txid = Utils.calTxId(txData, poseidon);
 
             // update gas UTXOs
-            _updateUTXOs(GAS_ASSET_ID, txid, gasInputs, gasOutputs);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
 
             // update token UTXOs
             _updateUTXOs(assetId, txid, inputs, outputs);
         }
 
-        if (UTXONumber > MAX_UTXOs) {
+        if (UTXONumber > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(UTXONumber);
         }
     }

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "./ILocalEntry.sol";
+import "../lib/Types.sol";
 
 /**
  * @notice Signed omniverse transaction
@@ -11,11 +12,6 @@ struct OmniverseTx {
     TxType txType;
     bytes txData;
 }
-
-uint128 constant GAS_FEE = 10;
-uint256 constant MAX_UTXOs = 100;
-bytes32 constant GAS_ASSET_ID = 0;
-bytes32 constant GAS_RECEIVER = hex"1234567812345678123456781234567812345678123456781234567812345678";
 
 /**
  * @notice Interface of Omniverse AA contract
@@ -27,6 +23,13 @@ interface IOmniverseAA {
      * @param signature The signature for the transaction
      */
     function submitTx(uint256 txIndex, bytes calldata signature) external;
+
+    /**
+     * @notice Returns UTXOs of an asset
+     * @param assetId The asset id of UTXOs to be queried
+     * @return UTXOs UTXOs with the asset id `assetId`
+     */
+    function getUTXOs(bytes32 assetId) external view returns (Types.UTXO[] memory UTXOs);
 
     /**
      * @notice Returns public keys of the AA contract
