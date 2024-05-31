@@ -97,5 +97,9 @@ library Types {
         // the maximum number of UTXOs allowed in a single transaction
         uint maxTxUTXO;
         uint8 decimals;
+        // address of state keeper on the chain
+        address stateKeeper;
+        // address of local entry contract
+        address localEntry;
     }
 }

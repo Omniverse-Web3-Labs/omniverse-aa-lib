@@ -4,21 +4,14 @@ pragma solidity ^0.8.24;
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 
-/**
- * @notice Omniverse transaction type
- */
-enum TxType {
-    Deploy,
-    Mint,
-    Transfer
-}
+import "../lib/Types.sol";
 
 /**
  * @notice Signed omniverse transaction
  */
 struct SignedTx {
     bytes32 txid;
-    TxType txType;
+    Types.TxType txType;
     bytes txData;
     bytes signature;
 }

@@ -1,10 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-// import "../interfaces/ILocalEntry.sol";
+import "../interfaces/IStateKeeperBeacon.sol";
 
-abstract contract MockStateKeeperBeacon {
+contract MockStateKeeperBeacon is IStateKeeperBeacon {
+    bool isIncluded;
     constructor() {
         
+    }
+
+    function setIsIncluded(bool _included) external {
+        isIncluded = _included;
+    }
+
+    function containsTxID(bytes32 txid) external returns (bool) {
+        return isIncluded;
     }
 }

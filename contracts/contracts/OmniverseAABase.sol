@@ -6,22 +6,22 @@ import "./interfaces/ILocalEntry.sol";
 import "./lib/Types.sol";
 import "./lib/EnumerableUTXOMap.sol";
 import "./lib/Utils.sol";
+import "./interfaces/IOmniverseEIP712.sol";
 
 uint128 constant GAS_FEE = 10;
 uint256 constant MAX_UTXO = 100;
 bytes32 constant GAS_ASSET_ID = 0;
 bytes32 constant GAS_RECEIVER = hex"1234567812345678123456781234567812345678123456781234567812345678";
+address constant STATE_KEEPER = address(0);
+address constant LOCAL_ENTRY = address(0);
 uint8 constant DECIMALS = 18;
+uint8 constant TOKEN_NAME_LENGTH_LIMIT = 24;
 
 abstract contract OmniverseAABase is IOmniverseAA {
     using EnumerableUTXOMap for EnumerableUTXOMap.Bytes32ToUTXOMap;
 
-    // address of local entry contract
-    address localEntry;
-    // address of state keeper on the chain
-    address stateKeeper;
     // unsigned transaction list
-    OmniverseTx[] unsignedTxs;
+    OmniverseTxWithTxid[] unsignedTxs;
     // next index of transation to be signed
     uint256 nextTxIndex;
     // public key
@@ -32,8 +32,27 @@ abstract contract OmniverseAABase is IOmniverseAA {
     mapping(bytes32 => EnumerableUTXOMap.Bytes32ToUTXOMap) assetIdMapToUTXOSet;
     // used to calculate Poseidon hash
     IPoseidon poseidon;
+    // used to verify EIP712 signature
+    IOmniverseEIP712 eip712;
     // system config
     Types.SystemConfig sysConfig;
+    // handled transactions
+    mapping(bytes32 => address) handledTxs;
+
+    /**
+     * @notice Throws when `onDeploy` not implemented
+     */
+    error OnDeployNotImplemented();
+
+    /**
+     * @notice Throws when `onMint` not implemented
+     */
+    error OnMintNotImplemented();
+
+    /**
+     * @notice Throws when `onTransfer` not implemented
+     */
+    error OnTransferNotImplemented();
 
     /**
      * @notice Throws when sender is not registered as AA contract signer
@@ -64,8 +83,15 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error UTXONumberExceedLimit(uint256 number);
 
-    constructor(bytes memory uncompressedPublicKey, Types.UTXO[] memory utxos, IPoseidon _poseidon) {
-        poseidon = _poseidon;
+    /**
+     * @notice Throw if token name length larger than 24 when constructing deploy transaction
+     * @param nameLength The real token name length
+     */
+    error TokenNameLengthExceedLimit(uint256 nameLength);
+
+    constructor(bytes memory uncompressedPublicKey, Types.UTXO[] memory utxos, address _poseidon, address _eip712) {
+        poseidon = IPoseidon(_poseidon);
+        eip712 = IOmniverseEIP712(_eip712);
 
         bytes32 _pubkey;
         assembly {
@@ -88,7 +114,9 @@ abstract contract OmniverseAABase is IOmniverseAA {
                 GAS_FEE
             ),
             MAX_UTXO,
-            DECIMALS
+            DECIMALS,
+            STATE_KEEPER,
+            LOCAL_ENTRY
         );
     }
 
@@ -110,9 +138,9 @@ abstract contract OmniverseAABase is IOmniverseAA {
             revert TransactionIndexNotMatch(nextTxIndex, txIndex);
         }
 
-        OmniverseTx storage omniTx = unsignedTxs[nextTxIndex];
+        OmniverseTxWithTxid storage omniTx = unsignedTxs[nextTxIndex];
 
-        ILocalEntry(localEntry).submitTx(SignedTx(omniTx.txid, omniTx.txType, omniTx.txData, signature));
+        ILocalEntry(sysConfig.localEntry).submitTx(SignedTx(omniTx.txid, omniTx.otx.txType, omniTx.otx.txData, signature));
 
         nextTxIndex++;
     }
@@ -146,7 +174,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @return txIndex The transaction index of which transaction to be signed
      * @return unsignedTx The next unsigned transaction
      */
-    function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTx memory unsignedTx) {
+    function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTxWithTxid memory unsignedTx) {
         if (nextTxIndex < unsignedTxs.length) {
             txIndex = nextTxIndex;
             unsignedTx = unsignedTxs[nextTxIndex];
@@ -325,6 +353,10 @@ abstract contract OmniverseAABase is IOmniverseAA {
     function _constructDeploy(Types.Metadata memory metadata) internal returns (bytes32 txid, Types.Deploy memory deployTx) {
         (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) = _getGas(new Types.Output[](0));
 
+        if (bytes(metadata.name).length > TOKEN_NAME_LENGTH_LIMIT) {
+            revert TokenNameLengthExceedLimit(bytes(metadata.name).length);
+        }
+
         deployTx = Types.Deploy(
             metadata,
             "0x",
@@ -431,5 +463,35 @@ abstract contract OmniverseAABase is IOmniverseAA {
         if (UTXONumber > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(UTXONumber);
         }
+    }
+
+    /**
+     * @notice Called when an omniverse transaction is Deploy
+     * @param signer The corresponding ETH address of the Omniverse signer
+     * @param data Deploy data
+     * @param customData Custom data submitted by user
+     */
+    function onDeploy(address signer, Types.Deploy memory data, bytes memory customData) internal virtual {
+        revert OnDeployNotImplemented();
+    }
+
+    /**
+     * @notice Called when an omniverse transaction is Mint
+     * @param signer The corresponding ETH address of the Omniverse signer
+     * @param data Mint data
+     * @param customData Custom data submitted by user
+     */
+    function onMint(address signer, Types.Mint memory data, bytes memory customData) internal virtual {
+        revert OnMintNotImplemented();
+    }
+
+    /**
+     * @notice Called when an omniverse transaction is Transfer
+     * @param signer The corresponding ETH address of the Omniverse signer
+     * @param data Transfer data
+     * @param customData Custom data submitted by user
+     */
+    function onTransfer(address signer, Types.Transfer memory data, bytes memory customData) internal virtual {
+        revert OnTransferNotImplemented();
     }
 }

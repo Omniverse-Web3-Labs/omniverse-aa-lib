@@ -5,12 +5,19 @@ import "./ILocalEntry.sol";
 import "../lib/Types.sol";
 
 /**
- * @notice Signed omniverse transaction
+ * @notice Unsigned omniverse transaction
  */
 struct OmniverseTx {
-    bytes32 txid;
-    TxType txType;
+    Types.TxType txType;
     bytes txData;
+}
+
+/**
+ * @notice Unsigned omniverse transaction with txid
+ */
+struct OmniverseTxWithTxid {
+    bytes32 txid;
+    OmniverseTx otx;
 }
 
 /**
@@ -42,12 +49,14 @@ interface IOmniverseAA {
      * @return txIndex The transaction index of which transaction to be signed
      * @return unsignedTx The next unsigned transaction
      */
-    function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTx memory unsignedTx);
+    function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTxWithTxid memory unsignedTx);
 
     /**
      * @notice Handles an omniverse transaction sent from global exec server
      * @param omniTx The transaction data to be handled
      * @param merkleProof The merkle proof of omniverse transaction
+     * @param signerPubkey The public key of the Omniverse transaction signer
+     * @param customData Custom data submitted by user
      */
-    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof) external;
+    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external;
 }

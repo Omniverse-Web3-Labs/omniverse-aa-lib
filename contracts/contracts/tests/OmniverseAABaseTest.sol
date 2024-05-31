@@ -6,10 +6,10 @@ import "../OmniverseAABase.sol";
 import "../lib/Types.sol";
 
 contract OmniverseAABaseTest is OmniverseAABase {
-    constructor(bytes memory uncompressedPublicKey, Types.UTXO[] memory utxos, IPoseidon _poseidon) OmniverseAABase(uncompressedPublicKey, utxos, _poseidon) {
+    constructor(bytes memory uncompressedPublicKey, Types.UTXO[] memory utxos, address _poseidon, address _eip712) OmniverseAABase(uncompressedPublicKey, utxos, _poseidon, _eip712) {
     }
 
-    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof) external {
+    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external {
 
     }
 
@@ -18,36 +18,42 @@ contract OmniverseAABaseTest is OmniverseAABase {
     }
 
     function setLocalEntry(address _localEntry) public {
-        localEntry = _localEntry;
+        sysConfig.localEntry = _localEntry;
     }
 
     function deploy(Types.Metadata calldata metadata) external {
         (bytes32 txid, Types.Deploy memory deployTx) = _constructDeploy(metadata);
         bytes memory txData = abi.encode(deployTx);
-        unsignedTxs.push(OmniverseTx(
+        unsignedTxs.push(OmniverseTxWithTxid(
             txid,
-            TxType.Deploy,
-            txData
+            OmniverseTx(
+                Types.TxType.Deploy,
+                txData
+            )
         ));
     }
 
     function mint(bytes32 assetId, Types.Output[] calldata outputs) external {
         (bytes32 txid, Types.Mint memory mintTx) = _constructMint(assetId, outputs);
         bytes memory txData = abi.encode(mintTx);
-        unsignedTxs.push(OmniverseTx(
+        unsignedTxs.push(OmniverseTxWithTxid(
             txid,
-            TxType.Mint,
-            txData
+            OmniverseTx(
+                Types.TxType.Mint,
+                txData
+            )
         ));
     }
 
     function transfer(bytes32 assetId, Types.Output[] calldata outputs) external {
         (bytes32 txid, Types.Transfer memory transferTx) = _constructTransfer(assetId, outputs);
         bytes memory txData = abi.encode(transferTx);
-        unsignedTxs.push(OmniverseTx(
+        unsignedTxs.push(OmniverseTxWithTxid(
             txid,
-            TxType.Transfer,
-            txData
+            OmniverseTx(
+                Types.TxType.Transfer,
+                txData
+            )
         ));
     }
 }
