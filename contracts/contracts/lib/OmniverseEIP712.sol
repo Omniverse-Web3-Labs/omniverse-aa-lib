@@ -6,9 +6,15 @@ import './Types.sol';
 import './Utils.sol';
 import 'hardhat/console.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+import {ShortStrings, ShortString} from "@openzeppelin/contracts/utils/ShortStrings.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract OmniverseEIP712 is EIP712 {
     using Types for *;
+    using ShortStrings for *;
+
+    bytes32 private constant TYPE_HASH =
+        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
 
     bytes32 private constant INPUT_TYPE_HASH =
         keccak256(
@@ -29,6 +35,12 @@ contract OmniverseEIP712 is EIP712 {
             'Transfer(bytes32 asset_id,Input[] inputs,Output[] outputs,Input[] fee_inputs,Output[] fee_outputs)Input(bytes32 txid,uint32 index,uint128 amount,bytes32 address)Output(uint128 amount,bytes32 address)'
         );
 
+    bytes32 private immutable _omniHashedName;
+    bytes32 private immutable _omniHashedVersion;
+    uint256 private immutable _omniChainId;
+    address private immutable _omniVerifyContract;
+    bytes32 private immutable _omniCachedDomainSeparator;
+
     /**
      * @notice Throw when the UTXO does not belong to the signer
      * @param signer Transaction signer
@@ -43,8 +55,17 @@ contract OmniverseEIP712 is EIP712 {
 
     constructor(
         string memory name,
-        string memory version
-    ) EIP712(name, version) {}
+        string memory version,
+        uint256 chainId,
+        address verifyContract
+    ) EIP712(name, version) {
+        _omniHashedName = keccak256(bytes(name));
+        _omniHashedVersion = keccak256(bytes(version));
+        _omniChainId = chainId;
+        _omniVerifyContract = verifyContract;
+
+        _omniCachedDomainSeparator = _domainSeparator();
+    }
 
     function verifySignature(
         Types.TxType txType,
@@ -181,5 +202,13 @@ contract OmniverseEIP712 is EIP712 {
             );
         }
         return result;
+    }
+
+    function _hashTypedDataV4(bytes32 structHash) internal view override returns (bytes32) {
+        return MessageHashUtils.toTypedDataHash(_omniCachedDomainSeparator, structHash);
+    }
+
+    function _domainSeparator() internal view returns (bytes32) {
+        return keccak256(abi.encode(TYPE_HASH, _omniHashedName, _omniHashedVersion, _omniChainId, _omniVerifyContract));
     }
 }

@@ -53,10 +53,12 @@ import {
   const SIG_PREFIX = "Register to Omniverse AA:";
 
   // common params
-  const TX_ID = "0x1234567812345678123456781234567812345678123456781234567812345678";
+  const TX_ID = "0x1122334455667788112233445566778811223344556677881122334455667788";
   const TX_DATA = "0x12345678";
-  const SIGNATURE = "0x1234567812345678123456781234567812345678123456781234567812345678";
+  const SIGNATURE = "0x3a42c95c375c019bb6dfdac8bc15bb06de455ce88edb211756d3edea69dbdc526d4f8b99ad86f33b07137649d6c8ef78b398e95d6a21748ae00db750e3814f7b1c";
   const GAS_PER_UTXO = 1000;
+  const INPUT_AMOUNT = "1234605616436508552";
+  const UTXO_INDEX = '287454020';
 
   const TOKEN_ASSET_ID = "0x0000000000000000000000000000000000000000000000000000000000000001";
 
@@ -72,15 +74,48 @@ import {
   const LOCAL_ENTRY = "0x0000000000000000000000000000000000000000";
 
   // default metadata
-  const METADATA_SALT = "0x0000000000000001";
-  const METADATA_NAME = "test",
-  const METADATA_TOTAL_SUPPLY = 1000;
-  const METADATA_LIMIT = 100;
-  const METADATA_PRICE = 10;
+  const METADATA_SALT = "0x1122334455667788";
+  const METADATA_NAME = "test_token";
+  const METADATA_TOTAL_SUPPLY = "1234605616436508552";
+  const METADATA_LIMIT = "1234605616436508552";
+  const METADATA_PRICE = "1234605616436508552";
 
+  // abi encoding and decoding
   const DEPLOY_TYPE = ["tuple(tuple(bytes8, string, bytes32, uint128, uint128, uint128), bytes, tuple(bytes32, uint64, uint128, bytes32)[], tuple(bytes32, uint128)[])"];
   const MINT_TYPE = ["tuple(bytes32, bytes, tuple(bytes32, uint128)[], tuple(bytes32, uint64, uint128, bytes32)[], tuple(bytes32, uint128)[])"];
   const TRANSFER_TYPE = ["tuple(bytes32, bytes, tuple(bytes32, uint64, uint128, bytes32)[], tuple(bytes32, uint128)[], tuple(bytes32, uint64, uint128, bytes32)[], tuple(bytes32, uint128)[])"];
+
+  // eip712
+  const DOMAIN = {
+    name: 'Omniverse Transaction',
+    version: '1',
+    chainId: 1,
+    verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC',
+  }
+
+  const DEPLOY_TYPES = {
+    // This refers to the domain the contract is hosted on.
+    Deploy: [
+      { name: 'salt', type: 'bytes8' },
+      { name: 'name', type: 'string' },
+      { name: 'deployer', type: 'bytes32' },
+      { name: 'limit', type: 'uint128' },
+      { name: 'price', type: 'uint128' },
+      { name: 'total_supply', type: 'uint128' },
+      { name: 'fee_inputs', type: 'Input[]' },
+      { name: 'fee_outputs', type: 'Output[]' }
+    ],
+    Input: [
+      { name: 'txid', type: 'bytes32' },
+      { name: 'index', type: 'uint32' },
+      { name: 'amount', type: 'uint128' },
+      { name: 'address', type: 'bytes32' }
+    ],
+    Output: [
+      { name: 'amount', type: 'uint128' },
+      { name: 'address', type: 'bytes32' }
+    ]
+  }
   
   describe("OmniverseAA", function () {
     function generateUTXOs(pubkey: string) {
@@ -105,6 +140,37 @@ import {
       return UTXOs;
     }
 
+    async function typedSignDeploy(signer: any, deploy: Deploy) {
+      let fee_inputs = [];
+      for (let i = 0; i < deploy.feeInputs.length; i++) {
+        fee_inputs.push({
+          txid: deploy.feeInputs[i].txid,
+          index: deploy.feeInputs[i].index,
+          amount: deploy.feeInputs[i].amount,
+          address: deploy.feeInputs[i].omniAddress,
+        })
+      }
+
+      let fee_outputs = [];
+      for (let i = 0; i < deploy.feeOutputs.length; i++) {
+        fee_outputs.push({
+          amount: deploy.feeOutputs[i].amount,
+          address: deploy.feeOutputs[i].omniAddress,
+        })
+      }
+
+      return await signer.signTypedData(DOMAIN, DEPLOY_TYPES, {
+        salt: deploy.metadata.salt,
+        name: deploy.metadata.name,
+        deployer: deploy.metadata.deployer,
+        total_supply: deploy.metadata.totalSupply,
+        limit: deploy.metadata.limit,
+        price: deploy.metadata.price,
+        fee_inputs,
+        fee_outputs,
+      })
+    }
+
     function encodeDeploy(deploy: Deploy) {
       let deployData = [
         [
@@ -116,8 +182,8 @@ import {
           deploy.metadata.price,
         ],
         deploy.signature,
-        deploy.feeInputs,
-        deploy.feeOutputs
+        deploy.feeInputs.map((input: Input) => [input.txid, input.index, input.amount, input.omniAddress]),
+        deploy.feeOutputs.map((output: Output) => [output.omniAddress, output.amount])
       ];
       const encoded = hre.ethers.AbiCoder.defaultAbiCoder().encode(DEPLOY_TYPE, [deployData]);
       return encoded;
@@ -158,7 +224,7 @@ import {
     async function deployOmniverseAAWithNoUTXO() {
       const wallets = getWallets();
       const OmniverseEIP712 = await hre.ethers.getContractFactory("OmniverseEIP712");
-      const eip712 = await OmniverseEIP712.deploy("Omniverse Transaction", "1");
+      const eip712 = await OmniverseEIP712.deploy(DOMAIN.name, DOMAIN.version, DOMAIN.chainId, DOMAIN.verifyingContract);
 
       const Poseidon = await hre.ethers.getContractFactory("Poseidon");
       const poseidon = await Poseidon.deploy();
@@ -172,7 +238,7 @@ import {
     async function deployOmniverseAAWithUTXOs() {
       const wallets = getWallets();
       const OmniverseEIP712 = await hre.ethers.getContractFactory("OmniverseEIP712");
-      const eip712 = await OmniverseEIP712.deploy("Omniverse Transaction", "1");
+      const eip712 = await OmniverseEIP712.deploy(DOMAIN.name, DOMAIN.version, DOMAIN.chainId, DOMAIN.verifyingContract);
       
       const Poseidon = await hre.ethers.getContractFactory("Poseidon");
       const poseidon = await Poseidon.deploy();
@@ -190,7 +256,7 @@ import {
       const wallets = getWallets();
       const signers = await hre.ethers.getSigners();
       const OmniverseEIP712 = await hre.ethers.getContractFactory("OmniverseEIP712");
-      const eip712 = await OmniverseEIP712.deploy("Omniverse Transaction", "1");
+      const eip712 = await OmniverseEIP712.deploy(DOMAIN.name, DOMAIN.version, DOMAIN.chainId, DOMAIN.verifyingContract);
       
       const Poseidon = await hre.ethers.getContractFactory("Poseidon");
       const poseidon = await Poseidon.deploy();
@@ -214,7 +280,7 @@ import {
       await omniverseAA.setLocalEntry(localEntry.target);
       await omniverseAA.setStateKeeper(stateKeeper.target);
       
-      return {omniverseAA, localEntry, stateKeeper, signer: {signer: signers[0], wallet: wallets[0]}, user: {signer: signers[1], wallet: wallets[1]}};
+      return {omniverseAA, localEntry, eip712, stateKeeper, signer: {signer: signers[0], wallet: wallets[0]}, user: {signer: signers[1], wallet: wallets[1]}};
     }
 
     async function deployOmniverseAAWithStateKeeperBeacon() {
@@ -240,7 +306,7 @@ import {
         it("Should pass with no UTXO set", async function () {
           const wallets = getWallets();
           const OmniverseEIP712 = await hre.ethers.getContractFactory("OmniverseEIP712");
-          const eip712 = await OmniverseEIP712.deploy("Omniverse Transaction", "1");
+          const eip712 = await OmniverseEIP712.deploy(DOMAIN.name, DOMAIN.version, DOMAIN.chainId, DOMAIN.verifyingContract);
 
           const Poseidon = await hre.ethers.getContractFactory("Poseidon");
           const poseidon = await Poseidon.deploy();
@@ -255,7 +321,7 @@ import {
         it("Should pass with UTXOs set", async function () {
           const wallets = getWallets();
           const OmniverseEIP712 = await hre.ethers.getContractFactory("OmniverseEIP712");
-          const eip712 = await OmniverseEIP712.deploy("Omniverse Transaction", "1");
+          const eip712 = await OmniverseEIP712.deploy(DOMAIN.name, DOMAIN.version, DOMAIN.chainId, DOMAIN.verifyingContract);
 
           const Poseidon = await hre.ethers.getContractFactory("Poseidon");
           const poseidon = await Poseidon.deploy();
@@ -495,66 +561,167 @@ import {
     });
   
     describe("Handle omniverse transaction", function () {
-    //   describe("Beacon chain", function () {
-    //     describe("Deploy", function () {
-    //     it("Should fail with signer not UTXO owner", async function () {
-    //       const { omniverseAA, user } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
-        
-    //       const deploy = [
-    //         [
-    //           METADATA_SALT,
-    //           METADATA_NAME,
-    //           user.compressed,
-    //           METADATA_TOTAL_SUPPLY,
-    //           METADATA_LIMIT,
-    //           METADATA_PRICE
-    //         ],
-    //         "0x",
-    //         [],
-    //         []
-    //       ];
-    //       const deployData = hre.ethers.AbiCoder.defaultAbiCoder().encode(DEPLOY_TYPE, [deploy]);
-    //       const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['0'], ['uint256']);
-    //         await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: deployData}, [], user.publicKey, customData)).to.be.revertedWithCustomError(
-    //           omniverseAA,
-    //           "TransactionNotExistsInStateKeeper"
-    //         );
-    //     });
-
-    //     it("Should fail with transaction not exists in state keeper", async function () {
-    //       const { omniverseAA } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
-        
-    //         await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: TX_DATA}, [])).to.be.revertedWithCustomError(
-    //           omniverseAA,
-    //           "TransactionNotExistsInStateKeeper"
-    //         );
-    //     });
-    //   });
-
-    //       describe("Transaction existing", function () {
-    //       it("Should pass with handle deploy transaction", async function () {
-    //         const { omniverseAA, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+      describe("Beacon chain", function () {
+        describe("Deploy", function () {
+          it("Should fail with transaction data error", async function () {
+            const { omniverseAA, user, stateKeeper, } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
             
-    //         await stateKeeper.setIsIncluded(true);
-    //         const deploy: Deploy = {
-    //           metadata: {
-    //             salt: METADATA_SALT,
-    //             name: METADATA_NAME,
-    //             deployer: user,
-    //             totalSupply: METADATA_TOTAL_SUPPLY,
-    //             limit: METADATA_LIMIT,
-    //             price: METADATA_PRICE
-    //           },
-    //           signature: "0x",
-    //           feeInputs: [],
-    //           feeOutputs: []
-    //         }
-    //         const signature = user.signer.signTypedData();
-    //         const encoded = encodeDeploy(deploy);
-    //         await omniverseAA.handleOmniverseTx({txType: 0, txData: deployData}, []);
-    //       });
-    //     });
-    // });
+            await stateKeeper.setIsIncluded(true);
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                deployer: user.wallet.compressed,
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: "0x",
+              feeInputs: [],
+              feeOutputs: []
+            }
+            
+            const signature = await typedSignDeploy(user.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData)).to.revertedWithPanic();
+          });
+
+        it("Should fail with signer not UTXO owner", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            await stateKeeper.setIsIncluded(true);
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                deployer: user.wallet.compressed,
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: '0',
+                amount: '1000',
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: []
+            }
+            const signature = await typedSignDeploy(user.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData)).to.revertedWithCustomError(
+              eip712,
+              "NotUTXOOwner"
+            )
+            .withArgs(user.wallet.compressed, signer.wallet.compressed);
+        });
+
+        it("Should fail with failing to verify signature", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            await stateKeeper.setIsIncluded(true);
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                deployer: user.wallet.compressed,
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: '0',
+                amount: '1000',
+                omniAddress: user.wallet.compressed
+              }],
+              feeOutputs: []
+            }
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData)).to.revertedWithCustomError(
+              eip712,
+              "SignatureVerifyFailed"
+            );
+        });
+
+        it("Should fail with transaction not exists in state keeper", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                // deployer: user.wallet.compressed,
+                deployer: '0x1122334455667788112233445566778811223344556677881122334455667788',
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: UTXO_INDEX,
+                amount: INPUT_AMOUNT,
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: [{
+                omniAddress: "0x1122334455667788112233445566778811223344556677881122334455667788",
+                amount: "1234605616436508552"
+              }]
+            }
+            const signature = await typedSignDeploy(signer.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData)).to.revertedWithCustomError(
+              omniverseAA,
+              "TransactionNotExistsInStateKeeper"
+            );
+        });
+      });
+
+        //   describe("Transaction existing", function () {
+        //   it("Should pass with handle deploy transaction", async function () {
+        //     const { omniverseAA, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+        //     await stateKeeper.setIsIncluded(true);
+        //     let deploy: Deploy = {
+        //       metadata: {
+        //         salt: METADATA_SALT,
+        //         name: METADATA_NAME,
+        //         deployer: user.wallet.compressed,
+        //         totalSupply: METADATA_TOTAL_SUPPLY,
+        //         limit: METADATA_LIMIT,
+        //         price: METADATA_PRICE
+        //       },
+        //       signature: "0x",
+        //       feeInputs: [],
+        //       feeOutputs: []
+        //     }
+        //     const signature = await user.signer.signTypedData(DOMAIN, DEPLOY_TYPES, {
+        //       salt: deploy.metadata.salt,
+        //       name: deploy.metadata.name,
+        //       deployer: deploy.metadata.deployer,
+        //       totalSupply: deploy.metadata.totalSupply,
+        //       limit: deploy.metadata.limit,
+        //       price: deploy.metadata.price,
+        //       feeInputs: deploy.feeInputs,
+        //       feeOutputs: deploy.feeOutputs,
+        //     });
+        //     deploy.signature = signature;
+        //     const encoded = encodeDeploy(deploy);
+        //     const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['0'], ['uint256']);
+        //     await omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData);
+        //   });
+        // });
+    });
 
   //   describe("Local chain", function () {
   //     it("Should fail with transaction not exists in state keeper", async function () {
