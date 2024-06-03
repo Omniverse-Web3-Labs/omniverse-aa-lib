@@ -15,4 +15,16 @@ contract OmniverseAABeaconTest is OmniverseAABeacon {
     function setStateKeeper(address _stateKeeper) public {
         sysConfig.stateKeeper = _stateKeeper;
     }
+
+    function onDeploy(address signer, Types.Deploy memory data, bytes memory customData) internal override {
+        
+    }
+
+    function onMint(address signer, Types.Mint memory data, bytes memory customData) internal virtual {
+        
+    }
+
+    function onTransfer(address signer, Types.Transfer memory data, bytes memory customData) internal virtual {
+        
+    }
 }

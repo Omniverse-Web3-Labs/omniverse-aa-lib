@@ -685,42 +685,271 @@ import {
               "TransactionNotExistsInStateKeeper"
             );
         });
-      });
 
-        //   describe("Transaction existing", function () {
-        //   it("Should pass with handle deploy transaction", async function () {
-        //     const { omniverseAA, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+        it("Should pass with all conditions satisfied", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
             
-        //     await stateKeeper.setIsIncluded(true);
-        //     let deploy: Deploy = {
-        //       metadata: {
-        //         salt: METADATA_SALT,
-        //         name: METADATA_NAME,
-        //         deployer: user.wallet.compressed,
-        //         totalSupply: METADATA_TOTAL_SUPPLY,
-        //         limit: METADATA_LIMIT,
-        //         price: METADATA_PRICE
-        //       },
-        //       signature: "0x",
-        //       feeInputs: [],
-        //       feeOutputs: []
-        //     }
-        //     const signature = await user.signer.signTypedData(DOMAIN, DEPLOY_TYPES, {
-        //       salt: deploy.metadata.salt,
-        //       name: deploy.metadata.name,
-        //       deployer: deploy.metadata.deployer,
-        //       totalSupply: deploy.metadata.totalSupply,
-        //       limit: deploy.metadata.limit,
-        //       price: deploy.metadata.price,
-        //       feeInputs: deploy.feeInputs,
-        //       feeOutputs: deploy.feeOutputs,
-        //     });
-        //     deploy.signature = signature;
-        //     const encoded = encodeDeploy(deploy);
-        //     const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['0'], ['uint256']);
-        //     await omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData);
-        //   });
-        // });
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                // deployer: user.wallet.compressed,
+                deployer: '0x1122334455667788112233445566778811223344556677881122334455667788',
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: UTXO_INDEX,
+                amount: INPUT_AMOUNT,
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: [{
+                omniAddress: "0x1122334455667788112233445566778811223344556677881122334455667788",
+                amount: "1234605616436508552"
+              }]
+            }
+            const signature = await typedSignDeploy(signer.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await stateKeeper.setIsIncluded(true);
+            await omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData);
+        });
+
+        it("Should fail with transaction already handled", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                // deployer: user.wallet.compressed,
+                deployer: '0x1122334455667788112233445566778811223344556677881122334455667788',
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: UTXO_INDEX,
+                amount: INPUT_AMOUNT,
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: [{
+                omniAddress: "0x1122334455667788112233445566778811223344556677881122334455667788",
+                amount: "1234605616436508552"
+              }]
+            }
+            const signature = await typedSignDeploy(signer.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await stateKeeper.setIsIncluded(true);
+            await omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData)).to.revertedWithCustomError(
+              omniverseAA,
+              "TransactionAlreadyHandled"
+            );
+        });
+      });
+        describe("Deploy", function () {
+          it("Should fail with transaction data error", async function () {
+            const { omniverseAA, user, stateKeeper, } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            await stateKeeper.setIsIncluded(true);
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                deployer: user.wallet.compressed,
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: "0x",
+              feeInputs: [],
+              feeOutputs: []
+            }
+            
+            const signature = await typedSignDeploy(user.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData)).to.revertedWithPanic();
+          });
+
+        it("Should fail with signer not UTXO owner", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            await stateKeeper.setIsIncluded(true);
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                deployer: user.wallet.compressed,
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: '0',
+                amount: '1000',
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: []
+            }
+            const signature = await typedSignDeploy(user.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData)).to.revertedWithCustomError(
+              eip712,
+              "NotUTXOOwner"
+            )
+            .withArgs(user.wallet.compressed, signer.wallet.compressed);
+        });
+
+        it("Should fail with failing to verify signature", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            await stateKeeper.setIsIncluded(true);
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                deployer: user.wallet.compressed,
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: '0',
+                amount: '1000',
+                omniAddress: user.wallet.compressed
+              }],
+              feeOutputs: []
+            }
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], user.wallet.publicKey, customData)).to.revertedWithCustomError(
+              eip712,
+              "SignatureVerifyFailed"
+            );
+        });
+
+        it("Should fail with transaction not exists in state keeper", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                // deployer: user.wallet.compressed,
+                deployer: '0x1122334455667788112233445566778811223344556677881122334455667788',
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: UTXO_INDEX,
+                amount: INPUT_AMOUNT,
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: [{
+                omniAddress: "0x1122334455667788112233445566778811223344556677881122334455667788",
+                amount: "1234605616436508552"
+              }]
+            }
+            const signature = await typedSignDeploy(signer.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData)).to.revertedWithCustomError(
+              omniverseAA,
+              "TransactionNotExistsInStateKeeper"
+            );
+        });
+
+        it("Should pass with all conditions satisfied", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                // deployer: user.wallet.compressed,
+                deployer: '0x1122334455667788112233445566778811223344556677881122334455667788',
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: UTXO_INDEX,
+                amount: INPUT_AMOUNT,
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: [{
+                omniAddress: "0x1122334455667788112233445566778811223344556677881122334455667788",
+                amount: "1234605616436508552"
+              }]
+            }
+            const signature = await typedSignDeploy(signer.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await stateKeeper.setIsIncluded(true);
+            await omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData);
+        });
+
+        it("Should fail with transaction already handled", async function () {
+          const { omniverseAA, signer, eip712, user, stateKeeper } = await loadFixture(deployOmniverseAAWithStateKeeperBeacon);
+            
+            let deploy: Deploy = {
+              metadata: {
+                salt: METADATA_SALT,
+                name: METADATA_NAME,
+                // deployer: user.wallet.compressed,
+                deployer: '0x1122334455667788112233445566778811223344556677881122334455667788',
+                totalSupply: METADATA_TOTAL_SUPPLY,
+                limit: METADATA_LIMIT,
+                price: METADATA_PRICE
+              },
+              signature: SIGNATURE,
+              feeInputs: [{
+                txid: TX_ID,
+                index: UTXO_INDEX,
+                amount: INPUT_AMOUNT,
+                omniAddress: signer.wallet.compressed
+              }],
+              feeOutputs: [{
+                omniAddress: "0x1122334455667788112233445566778811223344556677881122334455667788",
+                amount: "1234605616436508552"
+              }]
+            }
+            const signature = await typedSignDeploy(signer.signer, deploy);
+            deploy.signature = signature;
+            const encoded = encodeDeploy(deploy);
+            const customData = hre.ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], ['0']);
+            await stateKeeper.setIsIncluded(true);
+            await omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData);
+            await expect(omniverseAA.handleOmniverseTx({txType: 0, txData: encoded}, [], signer.wallet.publicKey, customData)).to.revertedWithCustomError(
+              omniverseAA,
+              "TransactionAlreadyHandled"
+            );
+        });
+      });
     });
 
   //   describe("Local chain", function () {
