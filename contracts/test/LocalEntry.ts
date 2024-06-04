@@ -166,14 +166,12 @@ describe('LocalEntry', function () {
 
             let signers = await hre.ethers.getSigners();
             await expect(
-                localEntry
-                    .connect(signers[2])
-                    .submitTx({
-                        txid: TX_ID,
-                        txType: 0,
-                        txData: TX_DATA,
-                        signature: SIGNATURE
-                    })
+                localEntry.connect(signers[2]).submitTx({
+                    txid: TX_ID,
+                    txType: 0,
+                    txData: TX_DATA,
+                    signature: SIGNATURE
+                })
             ).to.be.revertedWithCustomError(localEntry, 'SenderNotRegistered');
         });
 
