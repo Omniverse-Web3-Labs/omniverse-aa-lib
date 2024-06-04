@@ -20,11 +20,11 @@ contract OmniverseAABeaconTest is OmniverseAABeacon {
         
     }
 
-    function onMint(address signer, Types.Mint memory data, bytes memory customData) internal virtual {
+    function onMint(address signer, Types.Mint memory data, bytes memory customData) internal override {
         
     }
 
-    function onTransfer(address signer, Types.Transfer memory data, bytes memory customData) internal virtual {
+    function onTransfer(address signer, Types.Transfer memory data, bytes memory customData) internal override {
         
     }
 }

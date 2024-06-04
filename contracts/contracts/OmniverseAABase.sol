@@ -84,6 +84,11 @@ abstract contract OmniverseAABase is IOmniverseAA {
     error UTXONumberExceedLimit(uint256 number);
 
     /**
+     * @notice Throw when minting asset is gas
+     */
+    error GasTokenCanNotBeMinted();
+
+    /**
      * @notice Throw if token name length larger than 24 when constructing deploy transaction
      * @param nameLength The real token name length
      */
@@ -382,6 +387,10 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @return mintTx Constructed Omniverset Mint transaction
      */
     function _constructMint(bytes32 assetId, Types.Output[] memory outputs) internal returns (bytes32 txid, Types.Mint memory mintTx) {
+        if (assetId == sysConfig.feeConfig.assetId) {
+            revert GasTokenCanNotBeMinted();
+        }
+        
         (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) = _getGas(new Types.Output[](0));
 
         mintTx = Types.Mint(
