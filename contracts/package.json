@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prettier-format": "prettier --config .prettierrc 'test/*.ts' --write",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,6 +13,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "hardhat": "^2.22.4",
+    "prettier": "^3.3.0",
     "secp256k1": "^5.0.0"
   },
   "dependencies": {
