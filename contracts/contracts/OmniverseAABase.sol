@@ -369,14 +369,23 @@ abstract contract OmniverseAABase is IOmniverseAA {
             gasOutputs
         );
 
-        bytes memory txData = Utils.deployToBytes(deployTx);
-        txid = Utils.calTxId(txData, poseidon);
+        bytes memory txDataPacked = Utils.deployToBytes(deployTx);
+        txid = Utils.calTxId(txDataPacked, poseidon);
 
         if (gasInputs.length + gasOutputs.length > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(gasInputs.length + gasOutputs.length);
         }
 
         _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
+
+        bytes memory txData = abi.encode(deployTx);
+        unsignedTxs.push(OmniverseTxWithTxid(
+            txid,
+            OmniverseTx(
+                Types.TxType.Deploy,
+                txData
+            )
+        ));
     }
 
     /**
@@ -401,8 +410,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
             gasOutputs
         );
 
-        bytes memory txData = Utils.MintToBytes(mintTx);
-        txid = Utils.calTxId(txData, poseidon);
+        bytes memory txDataPacked = Utils.MintToBytes(mintTx);
+        txid = Utils.calTxId(txDataPacked, poseidon);
 
         if (outputs.length + gasInputs.length + gasOutputs.length > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(outputs.length + gasInputs.length + gasOutputs.length);
@@ -413,6 +422,15 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         // update token UTXOs
         _updateUTXOs(assetId, txid, new Types.Input[](0), outputs);
+
+        bytes memory txData = abi.encode(mintTx);
+        unsignedTxs.push(OmniverseTxWithTxid(
+            txid,
+            OmniverseTx(
+                Types.TxType.Mint,
+                txData
+            )
+        ));
     }
 
     /**
@@ -438,8 +456,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
             UTXONumber = gasInputs.length + gasOutputs.length;
 
-            bytes memory txData = Utils.TransferToBytes(transferTx);
-            txid = Utils.calTxId(txData, poseidon);
+            bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
 
             // update gas UTXOs
             _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
@@ -472,6 +490,15 @@ abstract contract OmniverseAABase is IOmniverseAA {
         if (UTXONumber > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(UTXONumber);
         }
+
+        bytes memory txData = abi.encode(transferTx);
+        unsignedTxs.push(OmniverseTxWithTxid(
+            txid,
+            OmniverseTx(
+                Types.TxType.Transfer,
+                txData
+            )
+        ));
     }
 
     /**

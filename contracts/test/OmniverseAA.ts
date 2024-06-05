@@ -416,6 +416,11 @@ describe('OmniverseAA', function () {
                 price: METADATA_PRICE
             };
             await omniverseAA.deploy(metadata);
+            const tx= await omniverseAA.getUnsignedTx();
+            expect(tx.txIndex).to.equal('0');
+            expect(tx.unsignedTx.txid).not.to.equal(
+                '0x0000000000000000000000000000000000000000000000000000000000000000'
+            );
         });
 
         it('Should pass when contructing mint transaction', async function () {
@@ -433,6 +438,11 @@ describe('OmniverseAA', function () {
             await omniverseAA.mint(TOKEN_ASSET_ID, outputs);
             const utxos = await omniverseAA.getUTXOs(TOKEN_ASSET_ID);
             expect(utxos.length).to.equal(outputs.length);
+            const tx= await omniverseAA.getUnsignedTx();
+            expect(tx.txIndex).to.equal('0');
+            expect(tx.unsignedTx.txid).not.to.equal(
+                '0x0000000000000000000000000000000000000000000000000000000000000000'
+            );
         });
 
         it('Should pass when contructing transfer transaction', async function () {
@@ -450,6 +460,11 @@ describe('OmniverseAA', function () {
             await omniverseAA.mint(TOKEN_ASSET_ID, outputs);
             const utxos = await omniverseAA.getUTXOs(TOKEN_ASSET_ID);
             expect(utxos.length).to.equal(outputs.length);
+            const tx= await omniverseAA.getUnsignedTx();
+            expect(tx.txIndex).to.equal('0');
+            expect(tx.unsignedTx.txid).not.to.equal(
+                '0x0000000000000000000000000000000000000000000000000000000000000000'
+            );
         });
     });
 
