@@ -6,7 +6,7 @@ import "./interfaces/ILocalEntry.sol";
 import "./lib/Utils.sol";
 
 string constant PERSONAL_SIGN_PREFIX = "\x19Ethereum Signed Message:\n";
-string constant OMNIVERSE_AA_SC_PREFIX = "Register to Omniverse AA:";
+string constant OMNIVERSE_AA_SC_PREFIX = "Register to Omniverse AA: ";
 
 contract LocalEntry is ILocalEntry {
     mapping(address => bytes[]) omniverseAAMapToPubkeys;
@@ -72,8 +72,8 @@ contract LocalEntry is ILocalEntry {
         }
 
         // verify signatures
+        bytes memory rawData = abi.encodePacked(OMNIVERSE_AA_SC_PREFIX, "0x", Utils.bytesToHexString(abi.encodePacked(msg.sender)), ", chain id: ", Strings.toString(block.chainid));
         for (uint i = 0; i < pubkeys.length; i++) {
-            bytes memory rawData = abi.encodePacked(OMNIVERSE_AA_SC_PREFIX, "0x", Utils.bytesToHexString(abi.encodePacked(msg.sender)));
             bytes32 hash = keccak256(abi.encodePacked(PERSONAL_SIGN_PREFIX, bytes(Strings.toString(rawData.length)), rawData));
             address pkAddress = recoverAddress(hash, signatures[i]);
             address senderAddress = Utils.pubKeyToAddress(pubkeys[i]);

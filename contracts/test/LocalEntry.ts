@@ -7,7 +7,9 @@ import { expect } from 'chai';
 import hre from 'hardhat';
 import ecdsa from 'secp256k1';
 
-const SIG_PREFIX = 'Register to Omniverse AA:';
+const CHAIN_ID = '31337';
+const SIG_CHAIN_ID = ', chain id: '
+const SIG_PREFIX = 'Register to Omniverse AA: ';
 const TX_ID =
     '0x1234567812345678123456781234567812345678123456781234567812345678';
 const TX_DATA = '0x12345678';
@@ -31,9 +33,9 @@ describe('LocalEntry', function () {
         let publicKeys = [];
         for (let i = 0; i < 2; i++) {
             let message = Buffer.from(
-                SIG_PREFIX + signers[0].address.toString().toLowerCase()
+                `${SIG_PREFIX}${signers[0].address.toString().toLowerCase()}${SIG_CHAIN_ID}${CHAIN_ID}`
             );
-            const sig = signers[i].signMessage(message);
+            const sig = await signers[i].signMessage(message);
             signatures.push(sig);
             publicKeys.push(wallets[i].publicKey);
         }
@@ -88,11 +90,10 @@ describe('LocalEntry', function () {
             let signatures = [];
             // mismatched signatures
             for (let i = 1; i < 3; i++) {
-                let message = Buffer.concat([
-                    Buffer.from(SIG_PREFIX),
-                    Buffer.from(localEntry.target.toString(), 'hex')
-                ]);
-                const sig = signers[0].signMessage(message);
+                let message = Buffer.from(
+                    `${SIG_PREFIX}${localEntry.target.toString().toLowerCase()}${SIG_CHAIN_ID}${CHAIN_ID}`
+                );
+                const sig = await signers[0].signMessage(message);
                 signatures.push(sig);
             }
             await expect(
@@ -113,10 +114,10 @@ describe('LocalEntry', function () {
             const signers = await hre.ethers.getSigners();
             let signatures = [];
             let publicKeys = [];
-            // mismatched signatures
+            
             for (let i = 0; i < 2; i++) {
                 let message = Buffer.from(
-                    SIG_PREFIX + signers[0].address.toString().toLowerCase()
+                    `${SIG_PREFIX}${signers[0].address.toString().toLowerCase()}${SIG_CHAIN_ID}${CHAIN_ID}`
                 );
                 const sig = await signers[i].signMessage(message);
                 signatures.push(sig);
@@ -140,10 +141,10 @@ describe('LocalEntry', function () {
             const signers = await hre.ethers.getSigners();
             let signatures = [];
             let publicKeys = [];
-            // mismatched signatures
+            
             for (let i = 0; i < 2; i++) {
                 let message = Buffer.from(
-                    SIG_PREFIX + signers[0].address.toString().toLowerCase()
+                    `${SIG_PREFIX}${signers[0].address.toString().toLowerCase()}${SIG_CHAIN_ID}${CHAIN_ID}`
                 );
                 const sig = await signers[i].signMessage(message);
                 signatures.push(sig);
