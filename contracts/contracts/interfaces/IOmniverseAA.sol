@@ -50,13 +50,4 @@ interface IOmniverseAA {
      * @return unsignedTx The next unsigned transaction
      */
     function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTxWithTxid memory unsignedTx);
-
-    /**
-     * @notice Handles an omniverse transaction sent from global exec server
-     * @param omniTx The transaction data to be handled
-     * @param merkleProof The merkle proof of omniverse transaction
-     * @param signerPubkey The public key of the Omniverse transaction signer
-     * @param customData Custom data submitted by user
-     */
-    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external;
 }

@@ -6,7 +6,7 @@ import "./interfaces/IStateKeeperBeacon.sol";
 import "./lib/Utils.sol";
 import "./lib/Types.sol";
 
-contract OmniverseAABeacon is OmniverseAABase {
+abstract contract OmniverseAABeacon is OmniverseAABase {
     /**
      * @notice Throws when transaction not exists in state keeper
      * @param txid The transaction id
@@ -29,12 +29,31 @@ contract OmniverseAABeacon is OmniverseAABase {
      * @param signerPubkey The public key of the Omniverse transaction signer
      * @param customData Custom data submitted by user
      */
-    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external override {
+    function _handleOmniverseTx(OmniverseTx memory omniTx, bytes32[] memory merkleProof, bytes memory signerPubkey, bytes memory customData) internal {
         // verify signature
         (address ethAddr) = eip712.verifySignature(omniTx.txType, omniTx.txData, signerPubkey);
          
         // calculate the transaction id
-        bytes32 txid = Utils.calTxId(omniTx.txData, poseidon);
+        bytes32 txid;
+
+        if (omniTx.txType == Types.TxType.Deploy) {
+            Types.Deploy memory deployTx = abi.decode(omniTx.txData, (Types.Deploy));
+            bytes memory txDataPacked = Utils.deployToBytes(deployTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
+            onDeploy(txid, ethAddr, deployTx, customData);
+        }
+        else if (omniTx.txType == Types.TxType.Mint) {
+            Types.Mint memory mintTx = abi.decode(omniTx.txData, (Types.Mint));
+            bytes memory txDataPacked = Utils.MintToBytes(mintTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
+            onMint(txid, ethAddr, mintTx, customData);
+        }
+        else if (omniTx.txType == Types.TxType.Transfer) {
+            Types.Transfer memory transferTx = abi.decode(omniTx.txData, (Types.Transfer));
+            bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
+            onTransfer(txid, ethAddr, transferTx, customData);
+        }
 
         bool txExist = IStateKeeperBeacon(sysConfig.stateKeeper).containsTxID(txid);
 
@@ -47,18 +66,5 @@ contract OmniverseAABeacon is OmniverseAABase {
         }
 
         handledTxs[txid] = ethAddr;
-
-        if (omniTx.txType == Types.TxType.Deploy) {
-            Types.Deploy memory deployTx = abi.decode(omniTx.txData, (Types.Deploy));
-            onDeploy(ethAddr, deployTx, customData);
-        }
-        else if (omniTx.txType == Types.TxType.Mint) {
-            Types.Mint memory mintTx = abi.decode(omniTx.txData, (Types.Mint));
-            onMint(ethAddr, mintTx, customData);
-        }
-        else if (omniTx.txType == Types.TxType.Transfer) {
-            Types.Transfer memory transferTx = abi.decode(omniTx.txData, (Types.Transfer));
-            onTransfer(ethAddr, transferTx, customData);
-        }
     }
 }

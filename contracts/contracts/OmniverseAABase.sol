@@ -477,8 +477,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
             UTXONumber = inputs.length + outputs.length + gasInputs.length + gasOutputs.length;
 
-            bytes memory txData = Utils.TransferToBytes(transferTx);
-            txid = Utils.calTxId(txData, poseidon);
+            bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
 
             // update gas UTXOs
             _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
@@ -503,31 +503,34 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
     /**
      * @notice Called when an omniverse transaction is Deploy
+     * @param txid The Omniverse transaction id
      * @param signer The corresponding ETH address of the Omniverse signer
      * @param data Deploy data
      * @param customData Custom data submitted by user
      */
-    function onDeploy(address signer, Types.Deploy memory data, bytes memory customData) internal virtual {
+    function onDeploy(bytes32 txid, address signer, Types.Deploy memory data, bytes memory customData) internal virtual {
         revert OnDeployNotImplemented();
     }
 
     /**
      * @notice Called when an omniverse transaction is Mint
+     * @param txid The Omniverse transaction id
      * @param signer The corresponding ETH address of the Omniverse signer
      * @param data Mint data
      * @param customData Custom data submitted by user
      */
-    function onMint(address signer, Types.Mint memory data, bytes memory customData) internal virtual {
+    function onMint(bytes32 txid, address signer, Types.Mint memory data, bytes memory customData) internal virtual {
         revert OnMintNotImplemented();
     }
 
     /**
      * @notice Called when an omniverse transaction is Transfer
+     * @param txid The Omniverse transaction id
      * @param signer The corresponding ETH address of the Omniverse signer
      * @param data Transfer data
      * @param customData Custom data submitted by user
      */
-    function onTransfer(address signer, Types.Transfer memory data, bytes memory customData) internal virtual {
+    function onTransfer(bytes32 txid, address signer, Types.Transfer memory data, bytes memory customData) internal virtual {
         revert OnTransferNotImplemented();
     }
 }

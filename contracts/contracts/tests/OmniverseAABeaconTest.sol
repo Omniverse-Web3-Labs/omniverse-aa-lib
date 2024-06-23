@@ -16,15 +16,22 @@ contract OmniverseAABeaconTest is OmniverseAABeacon {
         sysConfig.stateKeeper = _stateKeeper;
     }
 
-    function onDeploy(address signer, Types.Deploy memory data, bytes memory customData) internal override {
+    function onDeploy(bytes32 txid, address signer, Types.Deploy memory data, bytes memory customData) internal override {
         
     }
 
-    function onMint(address signer, Types.Mint memory data, bytes memory customData) internal override {
+    function onMint(bytes32 txid, address signer, Types.Mint memory data, bytes memory customData) internal override {
         
     }
 
-    function onTransfer(address signer, Types.Transfer memory data, bytes memory customData) internal override {
+    function onTransfer(bytes32 txid, address signer, Types.Transfer memory data, bytes memory customData) internal override {
         
+    }
+
+    /**
+     * @notice Handles an omniverse transaction sent from global exec server
+     */
+    function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external{
+        _handleOmniverseTx(omniTx, merkleProof, signerPubkey, customData);
     }
 }
