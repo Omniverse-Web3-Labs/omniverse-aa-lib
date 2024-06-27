@@ -208,6 +208,8 @@ describe('LocalEntry', function () {
             expect(signedTx.address).not.to.equal('0x');
             signedTx = await localEntry.getTransactionByIndex(0);
             expect(signedTx.address).not.to.equal('0x');
+            const txNumber = await localEntry.getTransactionNumber();
+            expect(txNumber).to.equal(1);
         });
 
         it('Should fail with transaction with the same txid exists', async function () {

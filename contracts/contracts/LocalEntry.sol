@@ -159,4 +159,12 @@ contract LocalEntry is ILocalEntry {
         address recovered = ecrecover(_hash, v, r, s);
         return recovered;
     }
+
+    /**
+     * @notice Returns total transaction number
+     * @return number Transaction number
+     */
+    function getTransactionNumber() external view returns (uint256 number) {
+        number = txidArray.length;
+    }
 }

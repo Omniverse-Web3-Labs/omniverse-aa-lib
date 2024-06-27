@@ -5,8 +5,12 @@ import "../interfaces/ILocalEntry.sol";
 
 contract MockLocalEntry is ILocalEntry {
     bool public submitRet;
+    bool registerd;
+    uint256 txNumber;
 
     error SubmitToLocalEntryFailed();
+
+    error SenderNotRegistered(address sender);
 
     constructor() {
         submitRet = true;
@@ -21,7 +25,7 @@ contract MockLocalEntry is ILocalEntry {
      * @param pubkeys Public keys of AA contract
      */
     function register(bytes[] calldata pubkeys, bytes[] calldata signatures) external {
-
+        registerd = true;
     }
 
     /**
@@ -38,9 +42,15 @@ contract MockLocalEntry is ILocalEntry {
      * @param signedTx Signed omniverse transaction
      */
     function submitTx(SignedTx calldata signedTx) external {
+        if (!registerd) {
+            revert SenderNotRegistered(msg.sender);
+        }
+
         if (!submitRet) {
             revert SubmitToLocalEntryFailed();
         }
+
+        txNumber++;
     }
 
     /**
@@ -61,5 +71,9 @@ contract MockLocalEntry is ILocalEntry {
      */
     function getTransactionByIndex(uint256 index) external view returns (address AAContract, SignedTx memory signedTx) {
 
+    }
+
+    function getTransactionNumber() external view returns (uint256 number) {
+        number = txNumber;
     }
 }

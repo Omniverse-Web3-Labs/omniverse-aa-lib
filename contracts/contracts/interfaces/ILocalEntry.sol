@@ -54,4 +54,10 @@ interface ILocalEntry {
      * @return signedTx The signed transction
      */
     function getTransactionByIndex(uint256 index) external view returns (address AAContract, SignedTx memory signedTx);
+
+    /**
+     * @notice Returns total transaction number
+     * @return number Transaction number
+     */
+    function getTransactionNumber() external view returns (uint256 number);
 }
