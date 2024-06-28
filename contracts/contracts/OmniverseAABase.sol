@@ -94,16 +94,9 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error TokenNameLengthExceedLimit(uint256 nameLength);
 
-    constructor(bytes memory uncompressedPublicKey, Types.UTXO[] memory utxos, address _poseidon, address _eip712) {
+    constructor(Types.UTXO[] memory utxos, address _poseidon, address _eip712) {
         poseidon = IPoseidon(_poseidon);
         eip712 = IOmniverseEIP712(_eip712);
-
-        bytes32 _pubkey;
-        assembly {
-            _pubkey := mload(add(uncompressedPublicKey, 0x20))
-        }
-        pubkey = _pubkey;
-        addrPubkey = Utils.pubKeyToAddress(uncompressedPublicKey);
 
         for (uint i = 0; i < utxos.length; i++) {
             bytes32 key = keccak256(
@@ -184,6 +177,36 @@ abstract contract OmniverseAABase is IOmniverseAA {
             txIndex = nextTxIndex;
             unsignedTx = unsignedTxs[nextTxIndex];
         }
+    }
+
+    /**
+     * @notice Register AA to Local Entry contract
+     * @param uncompressedPublicKey Uncompress public key
+     * @param signature The signature signed by AA private key
+     */
+    function register(bytes calldata uncompressedPublicKey, bytes calldata signature) external {
+        bytes32 _pubkey;
+        assembly {
+            _pubkey := calldataload(add(uncompressedPublicKey.offset, 0))
+        }
+        pubkey = _pubkey;
+        addrPubkey = Utils.pubKeyToAddress(uncompressedPublicKey);
+
+        bytes[] memory publicKeys = new bytes[](1);
+        publicKeys[0] = uncompressedPublicKey;
+        bytes[] memory signatures = new bytes[](1);
+        signatures[0] = signature;
+        ILocalEntry(sysConfig.localEntry).register(publicKeys, signatures);
+    }
+
+    function register2(bytes calldata uncompressedPublicKey, bytes calldata signature) external view returns (bytes32, address) {
+        bytes32 _pubkey;
+        assembly {
+            _pubkey := calldataload(add(uncompressedPublicKey.offset, 0))
+        }
+        bytes32 pubkey = _pubkey;
+        address addrPubkey = Utils.pubKeyToAddress(uncompressedPublicKey);
+        return (pubkey, addrPubkey);
     }
 
     /**

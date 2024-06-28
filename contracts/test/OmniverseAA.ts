@@ -43,6 +43,8 @@ const METADATA_LIMIT = '1234605616436508552';
 const METADATA_PRICE = '1234605616436508552';
 
 describe('OmniverseAA', function () {
+    let localEntry: any;
+
     function generateUTXOs(pubkey: string) {
         let UTXOs = [];
         for (let i = 0; i < UTXO_NUM; i++) {
@@ -66,9 +68,12 @@ describe('OmniverseAA', function () {
     }
 
     async function deployLocalEntry() {
-        const MockLocalEntry =
-            await hre.ethers.getContractFactory('MockLocalEntry');
-        const localEntry = await MockLocalEntry.deploy();
+        if (!localEntry) {
+            const MockLocalEntry =
+                await hre.ethers.getContractFactory('MockLocalEntry');
+            localEntry = await MockLocalEntry.deploy();
+            console.log('localEntry', localEntry.target)
+        }
 
         return localEntry;
     }
@@ -91,11 +96,13 @@ describe('OmniverseAA', function () {
             'OmniverseAABaseTest'
         );
         const omniverseAA = await OmniverseAABase.deploy(
-            wallets[0].publicKey,
             [],
             poseidon.target,
             eip712.target
         );
+
+        await omniverseAA.setLocalEntry(localEntry.target);
+        await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
         return { omniverseAA };
     }
@@ -118,7 +125,6 @@ describe('OmniverseAA', function () {
             'OmniverseAABaseTest'
         );
         const omniverseAA = await OmniverseAABase.deploy(
-            wallets[0].publicKey,
             generateUTXOs(wallets[0].compressed),
             poseidon.target,
             eip712.target
@@ -126,6 +132,10 @@ describe('OmniverseAA', function () {
 
         const localEntry = await deployLocalEntry();
         await omniverseAA.setLocalEntry(localEntry.target);
+
+        omniverseAA.register(wallets[0].publicKey, SIGNATURE);
+        const pk2 = await omniverseAA.register2(wallets[0].publicKey, SIGNATURE);
+        console.log('pk2', pk2)
 
         return {
             omniverseAA,
@@ -170,7 +180,6 @@ describe('OmniverseAA', function () {
 
         const stateKeeper = await MockStateKeeper.deploy();
         const omniverseAA = await OmniverseAA.deploy(
-            wallets[0].publicKey,
             generateUTXOs(wallets[0].compressed),
             poseidon.target,
             eip712.target
@@ -180,6 +189,8 @@ describe('OmniverseAA', function () {
 
         await omniverseAA.setLocalEntry(localEntry.target);
         await omniverseAA.setStateKeeper(stateKeeper.target);
+
+        await omniverseAA.register(wallets[0].publicKey, SIGNATURE)
 
         return {
             omniverseAA,
@@ -233,15 +244,19 @@ describe('OmniverseAA', function () {
             const Poseidon = await hre.ethers.getContractFactory('Poseidon');
             const poseidon = await Poseidon.deploy();
 
+            await deployLocalEntry();
+
             const OmniverseAALocal = await hre.ethers.getContractFactory(
                 'OmniverseAABaseTest'
             );
             const omniverseAA = await OmniverseAALocal.deploy(
-                wallets[0].publicKey,
                 [],
                 poseidon.target,
                 eip712.target
             );
+
+            await omniverseAA.setLocalEntry(localEntry.target);
+            await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
             const utxos = await omniverseAA.getUTXOs(GAS_ASSET_ID);
             expect(utxos.length).to.equal(0);
@@ -266,11 +281,13 @@ describe('OmniverseAA', function () {
             );
             console.log('wallets[0].compressed', wallets[0]);
             const omniverseAA = await OmniverseAALocal.deploy(
-                wallets[0].publicKey,
                 generateUTXOs(wallets[0].compressed),
                 poseidon.target,
                 eip712.target
             );
+
+            await omniverseAA.setLocalEntry(localEntry.target);
+            await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
             const utxos = await omniverseAA.getUTXOs(GAS_ASSET_ID);
             expect(utxos.length).to.equal(UTXO_NUM);
@@ -435,6 +452,8 @@ describe('OmniverseAA', function () {
                     amount: 10
                 });
             }
+            const pk = await omniverseAA.getPubkey();
+            console.log('pk++++', pk, signer)
             await omniverseAA.mint(TOKEN_ASSET_ID, outputs);
             const utxos = await omniverseAA.getUTXOs(TOKEN_ASSET_ID);
             expect(utxos.length).to.equal(outputs.length);

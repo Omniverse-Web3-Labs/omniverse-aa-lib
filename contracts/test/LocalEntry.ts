@@ -4,12 +4,13 @@ import {
 } from '@nomicfoundation/hardhat-toolbox/network-helpers';
 import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs';
 import { expect } from 'chai';
-import hre from 'hardhat';
+import hre, { ethers } from 'hardhat';
 import ecdsa from 'secp256k1';
 
 const CHAIN_ID = '31337';
 const SIG_CHAIN_ID = ', chain id: '
 const SIG_PREFIX = 'Register to Omniverse AA: ';
+const PERSONAL_SIGN_PREFIX = '\x19Ethereum Signed Message:\n';
 const TX_ID =
     '0x1234567812345678123456781234567812345678123456781234567812345678';
 const TX_DATA = '0x12345678';
@@ -120,6 +121,10 @@ describe('LocalEntry', function () {
                     `${SIG_PREFIX}${signers[0].address.toString().toLowerCase()}${SIG_CHAIN_ID}${CHAIN_ID}`
                 );
                 const sig = await signers[i].signMessage(message);
+                const hash = ethers.keccak256(Buffer.concat([Buffer.from(PERSONAL_SIGN_PREFIX), Buffer.from(message.length.toString()), message]));
+                const signature = ecdsa.ecdsaSign(Buffer.from(hash.substring(2), 'hex'), Buffer.from(wallets[i].privateKey.substring(2), 'hex'))
+                const sigXY = '0x' + Buffer.from(signature.signature).toString('hex');
+                expect(sig).to.equal(signature.recid == 0 ? sigXY + '1b' : sigXY + '1c');
                 signatures.push(sig);
                 publicKeys.push(wallets[i].publicKey);
             }

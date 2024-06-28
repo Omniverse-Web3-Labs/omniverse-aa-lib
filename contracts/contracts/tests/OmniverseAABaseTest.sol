@@ -6,7 +6,7 @@ import "../OmniverseAABase.sol";
 import "../lib/Types.sol";
 
 contract OmniverseAABaseTest is OmniverseAABase {
-    constructor(bytes memory uncompressedPublicKey, Types.UTXO[] memory utxos, address _poseidon, address _eip712) OmniverseAABase(uncompressedPublicKey, utxos, _poseidon, _eip712) {
+    constructor(Types.UTXO[] memory utxos, address _poseidon, address _eip712) OmniverseAABase(utxos, _poseidon, _eip712) {
     }
 
     function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external {
@@ -22,14 +22,14 @@ contract OmniverseAABaseTest is OmniverseAABase {
     }
 
     function deploy(Types.Metadata calldata metadata) external {
-        (bytes32 txid, Types.Deploy memory deployTx) = _constructDeploy(metadata);
+        _constructDeploy(metadata);
     }
 
     function mint(bytes32 assetId, Types.Output[] calldata outputs) external {
-        (bytes32 txid, Types.Mint memory mintTx) = _constructMint(assetId, outputs);
+        _constructMint(assetId, outputs);
     }
 
     function transfer(bytes32 assetId, Types.Output[] calldata outputs) external {
-        (bytes32 txid, Types.Transfer memory transferTx) = _constructTransfer(assetId, outputs);
+        _constructTransfer(assetId, outputs);
     }
 }
