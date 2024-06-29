@@ -32,6 +32,7 @@ const GAS_FEE = '10';
 // sys config
 const UTXO_NUM = 10;
 const DECIMALS = 18;
+const OUTPUT_NUM = 5;
 const STATE_KEEPER = '0x0000000000000000000000000000000000000000';
 const LOCAL_ENTRY = '0x0000000000000000000000000000000000000000';
 
@@ -44,6 +45,21 @@ const METADATA_PRICE = '1234605616436508552';
 
 describe('OmniverseAA', function () {
     let localEntry: any;
+
+    function UTXOChanged(utxosBefore: any, utxosAfter: any): boolean {
+        for (let i in utxosBefore) {
+            const utxo = utxosBefore[i];
+            if (!utxosAfter.find((item: any, index: number) => {
+                if (item.txid == utxo.txid && item.index == utxo.index) {
+                    return true;
+                }
+            })) {
+                return true;
+                break;
+            }
+        }
+        return false;
+    }
 
     function generateUTXOs(pubkey: string) {
         let UTXOs = [];
@@ -133,9 +149,7 @@ describe('OmniverseAA', function () {
         const localEntry = await deployLocalEntry();
         await omniverseAA.setLocalEntry(localEntry.target);
 
-        omniverseAA.register(wallets[0].publicKey, SIGNATURE);
-        const pk2 = await omniverseAA.register2(wallets[0].publicKey, SIGNATURE);
-        console.log('pk2', pk2)
+        await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
         return {
             omniverseAA,
@@ -424,6 +438,8 @@ describe('OmniverseAA', function () {
                 deployOmniverseAAWithUTXOs
             );
 
+            const gasUTXOs = await omniverseAA.getUTXOs(GAS_ASSET_ID);
+
             const metadata = {
                 salt: METADATA_SALT,
                 name: METADATA_NAME,
@@ -438,15 +454,21 @@ describe('OmniverseAA', function () {
             expect(tx.unsignedTx.txid).not.to.equal(
                 '0x0000000000000000000000000000000000000000000000000000000000000000'
             );
+            
+            const gasUTXOsAfter = await omniverseAA.getUTXOs(GAS_ASSET_ID);
+            
+            expect(UTXOChanged(gasUTXOs, gasUTXOsAfter)).to.be.true;
         });
 
         it('Should pass when contructing mint transaction', async function () {
             const { omniverseAA, signer } = await loadFixture(
                 deployOmniverseAAWithUTXOs
             );
+            
+            const gasUTXOs = await omniverseAA.getUTXOs(GAS_ASSET_ID);
 
             let outputs = [];
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < OUTPUT_NUM; i++) {
                 outputs.push({
                     omniAddress: signer,
                     amount: 10
@@ -462,28 +484,57 @@ describe('OmniverseAA', function () {
             expect(tx.unsignedTx.txid).not.to.equal(
                 '0x0000000000000000000000000000000000000000000000000000000000000000'
             );
+            const gasUTXOsAfter = await omniverseAA.getUTXOs(GAS_ASSET_ID);
+
+            expect(UTXOChanged(gasUTXOs, gasUTXOsAfter)).to.be.true;
         });
 
         it('Should pass when contructing transfer transaction', async function () {
-            const { omniverseAA, signer } = await loadFixture(
+            const { omniverseAA, signer, user } = await loadFixture(
                 deployOmniverseAAWithUTXOs
             );
 
+            let gasUTXOs = await omniverseAA.getUTXOs(GAS_ASSET_ID);
+
             let outputs = [];
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < OUTPUT_NUM; i++) {
                 outputs.push({
                     omniAddress: signer,
                     amount: 10
                 });
             }
+
+            // mint
             await omniverseAA.mint(TOKEN_ASSET_ID, outputs);
-            const utxos = await omniverseAA.getUTXOs(TOKEN_ASSET_ID);
+            let utxos = await omniverseAA.getUTXOs(TOKEN_ASSET_ID);
             expect(utxos.length).to.equal(outputs.length);
+
+            // transfer
+            outputs = [];
+            for (let i = 0; i < OUTPUT_NUM; i++) {
+                outputs.push({
+                    omniAddress: user,
+                    amount: 10
+                });
+            }
+            await omniverseAA.transfer(TOKEN_ASSET_ID, outputs);
+            utxos = await omniverseAA.getUTXOs(TOKEN_ASSET_ID);
+            expect(utxos.length).to.equal(0);
+
             const tx= await omniverseAA.getUnsignedTx();
             expect(tx.txIndex).to.equal('0');
             expect(tx.unsignedTx.txid).not.to.equal(
                 '0x0000000000000000000000000000000000000000000000000000000000000000'
             );
+            let gasUTXOsAfter = await omniverseAA.getUTXOs(GAS_ASSET_ID);
+            expect(UTXOChanged(gasUTXOs, gasUTXOsAfter)).to.be.true;
+            gasUTXOs = gasUTXOsAfter;
+
+            // transfer gas token
+            await omniverseAA.transfer(GAS_ASSET_ID, outputs);
+            
+            gasUTXOsAfter = await omniverseAA.getUTXOs(GAS_ASSET_ID);
+            expect(UTXOChanged(gasUTXOs, gasUTXOsAfter)).to.be.true;
         });
     });
 
