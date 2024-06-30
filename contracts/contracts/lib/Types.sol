@@ -97,6 +97,8 @@ library Types {
         // the maximum number of UTXOs allowed in a single transaction
         uint maxTxUTXO;
         uint8 decimals;
+        // the up limit of Omniverse token name
+        uint8 tokenNameLimit;
         // address of state keeper on the chain
         address stateKeeper;
         // address of local entry contract
