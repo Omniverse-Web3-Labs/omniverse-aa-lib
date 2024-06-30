@@ -7,6 +7,7 @@ import "./lib/Types.sol";
 import "./lib/EnumerableUTXOMap.sol";
 import "./lib/Utils.sol";
 import "./interfaces/IOmniverseEIP712.sol";
+import "./interfaces/IOmniverseSysConfigAA.sol";
 
 uint128 constant GAS_FEE = 1;
 uint256 constant MAX_UTXO = 20;
@@ -94,27 +95,28 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error TokenNameLengthExceedLimit(uint256 nameLength);
 
-    constructor(Types.UTXO[] memory utxos, address _poseidon, address _eip712) {
+    constructor(address _sysConfig, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) {
         poseidon = IPoseidon(_poseidon);
         eip712 = IOmniverseEIP712(_eip712);
 
-        for (uint i = 0; i < utxos.length; i++) {
+        for (uint i = 0; i < _utxos.length; i++) {
             bytes32 key = keccak256(
-                abi.encodePacked(utxos[i].txid, utxos[i].index)
+                abi.encodePacked(_utxos[i].txid, _utxos[i].index)
             );
-            assetIdMapToUTXOSet[utxos[i].assetId].set(key, utxos[i]);
+            assetIdMapToUTXOSet[_utxos[i].assetId].set(key, _utxos[i]);
         }
 
         sysConfig = Types.SystemConfig(
             Types.FeeConfig(
-                GAS_ASSET_ID,
-                GAS_RECEIVER,
-                GAS_FEE
+                IOmniverseSysConfigAA(_sysConfig).gasAssetId(),
+                IOmniverseSysConfigAA(_sysConfig).gasRecipient(),
+                IOmniverseSysConfigAA(_sysConfig).gasFee()
             ),
-            MAX_UTXO,
-            DECIMALS,
-            STATE_KEEPER,
-            LOCAL_ENTRY
+            IOmniverseSysConfigAA(_sysConfig).maxUTXONumber(),
+            IOmniverseSysConfigAA(_sysConfig).decimals(),
+            IOmniverseSysConfigAA(_sysConfig).tokenNameLimit(),
+            IOmniverseSysConfigAA(_sysConfig).stateKeeper(),
+            IOmniverseSysConfigAA(_sysConfig).localEntry()
         );
     }
 
@@ -374,7 +376,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
     function _constructDeploy(Types.Metadata memory metadata) internal returns (bytes32 txid, Types.Deploy memory deployTx) {
         (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) = _getGas(new Types.Output[](0));
 
-        if (bytes(metadata.name).length > TOKEN_NAME_LENGTH_LIMIT) {
+        if (bytes(metadata.name).length > sysConfig.tokenNameLimit) {
             revert TokenNameLengthExceedLimit(bytes(metadata.name).length);
         }
 

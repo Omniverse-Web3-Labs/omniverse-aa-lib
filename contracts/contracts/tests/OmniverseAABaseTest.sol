@@ -6,7 +6,7 @@ import "../OmniverseAABase.sol";
 import "../lib/Types.sol";
 
 contract OmniverseAABaseTest is OmniverseAABase {
-    constructor(Types.UTXO[] memory utxos, address _poseidon, address _eip712) OmniverseAABase(utxos, _poseidon, _eip712) {
+    constructor(address _sysConfig, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) OmniverseAABase(_sysConfig, _utxos, _poseidon, _eip712) {
     }
 
     function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external {

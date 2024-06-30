@@ -30,11 +30,14 @@ const GAS_RECEIVER =
 const GAS_FEE = '10';
 
 // sys config
-const UTXO_NUM = 10;
+const UTXO_NUM = 20;
 const DECIMALS = 18;
-const OUTPUT_NUM = 5;
+const TOKEN_NAME_LIMIT = 24;
 const STATE_KEEPER = '0x0000000000000000000000000000000000000000';
 const LOCAL_ENTRY = '0x0000000000000000000000000000000000000000';
+
+const OUTPUT_NUM = 5;
+const GENERATE_UTXO_NUM = 10;
 
 // default metadata
 const METADATA_SALT = '0x1122334455667788';
@@ -63,7 +66,7 @@ describe('OmniverseAA', function () {
 
     function generateUTXOs(pubkey: string) {
         let UTXOs = [];
-        for (let i = 0; i < UTXO_NUM; i++) {
+        for (let i = 0; i < GENERATE_UTXO_NUM; i++) {
             let txid = `0x${i.toString().padStart(64, '0')}`;
             let UTXO: {
                 omniAddress: string;
@@ -94,6 +97,23 @@ describe('OmniverseAA', function () {
         return localEntry;
     }
 
+    async function deploySysConfig() {
+        // Omniverse system config
+        const OmniverseSysConfig =
+            await hre.ethers.getContractFactory('OmniverseSysConfig');
+        const sysConfig = await OmniverseSysConfig.deploy(
+            GAS_ASSET_ID,
+            GAS_RECEIVER,
+            GAS_FEE,
+            UTXO_NUM,
+            DECIMALS,
+            TOKEN_NAME_LIMIT,
+            STATE_KEEPER,
+            localEntry.target
+        );
+        return sysConfig;
+    }
+
     async function deployOmniverseAAWithNoUTXO() {
         const wallets = getWallets();
         const OmniverseEIP712 =
@@ -108,10 +128,14 @@ describe('OmniverseAA', function () {
         const Poseidon = await hre.ethers.getContractFactory('Poseidon');
         const poseidon = await Poseidon.deploy();
 
+        // Omniverse system config
+        const sysConfig = await deploySysConfig();
+
         const OmniverseAABase = await hre.ethers.getContractFactory(
             'OmniverseAABaseTest'
         );
         const omniverseAA = await OmniverseAABase.deploy(
+            sysConfig.target,
             [],
             poseidon.target,
             eip712.target
@@ -137,10 +161,14 @@ describe('OmniverseAA', function () {
         const Poseidon = await hre.ethers.getContractFactory('Poseidon');
         const poseidon = await Poseidon.deploy();
 
+        // Omniverse system config
+        const sysConfig = await deploySysConfig();
+
         const OmniverseAABase = await hre.ethers.getContractFactory(
             'OmniverseAABaseTest'
         );
         const omniverseAA = await OmniverseAABase.deploy(
+            sysConfig.target,
             generateUTXOs(wallets[0].compressed),
             poseidon.target,
             eip712.target
@@ -192,8 +220,12 @@ describe('OmniverseAA', function () {
             );
         }
 
+        // Omniverse system config
+        const sysConfig = await deploySysConfig();
+
         const stateKeeper = await MockStateKeeper.deploy();
         const omniverseAA = await OmniverseAA.deploy(
+            sysConfig.target,
             generateUTXOs(wallets[0].compressed),
             poseidon.target,
             eip712.target
@@ -260,10 +292,14 @@ describe('OmniverseAA', function () {
 
             await deployLocalEntry();
 
+            // Omniverse system config
+            const sysConfig = await deploySysConfig()
+
             const OmniverseAALocal = await hre.ethers.getContractFactory(
                 'OmniverseAABaseTest'
             );
             const omniverseAA = await OmniverseAALocal.deploy(
+                sysConfig.target,
                 [],
                 poseidon.target,
                 eip712.target
@@ -290,11 +326,15 @@ describe('OmniverseAA', function () {
             const Poseidon = await hre.ethers.getContractFactory('Poseidon');
             const poseidon = await Poseidon.deploy();
 
+            // Omniverse system config
+            const sysConfig = await deploySysConfig();
+
             const OmniverseAALocal = await hre.ethers.getContractFactory(
                 'OmniverseAABaseTest'
             );
             console.log('wallets[0].compressed', wallets[0]);
             const omniverseAA = await OmniverseAALocal.deploy(
+                sysConfig.target,
                 generateUTXOs(wallets[0].compressed),
                 poseidon.target,
                 eip712.target
@@ -304,7 +344,7 @@ describe('OmniverseAA', function () {
             await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
             const utxos = await omniverseAA.getUTXOs(GAS_ASSET_ID);
-            expect(utxos.length).to.equal(UTXO_NUM);
+            expect(utxos.length).to.equal(GENERATE_UTXO_NUM);
         });
     });
 
@@ -335,6 +375,7 @@ describe('OmniverseAA', function () {
                 },
                 maxTxUTXO: 1,
                 decimals: DECIMALS,
+                tokenNameLimit: TOKEN_NAME_LIMIT,
                 stateKeeper: STATE_KEEPER,
                 localEntry: LOCAL_ENTRY
             });
@@ -359,6 +400,7 @@ describe('OmniverseAA', function () {
                 },
                 maxTxUTXO: 5,
                 decimals: DECIMALS,
+                tokenNameLimit: TOKEN_NAME_LIMIT,
                 stateKeeper: STATE_KEEPER,
                 localEntry: LOCAL_ENTRY
             });

@@ -19,7 +19,7 @@ abstract contract OmniverseAABeacon is OmniverseAABase {
      */
     error TransactionAlreadyHandled(bytes32 txid);
 
-    constructor(Types.UTXO[] memory utxos, address _poseidon, address _eip712) OmniverseAABase(utxos, _poseidon, _eip712) {
+    constructor(address _sysConfig, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) OmniverseAABase(_sysConfig, _utxos, _poseidon, _eip712) {
     }
 
     /**

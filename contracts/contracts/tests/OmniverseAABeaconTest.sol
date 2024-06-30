@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "../OmniverseAABeacon.sol";
 
 contract OmniverseAABeaconTest is OmniverseAABeacon {
-    constructor(Types.UTXO[] memory utxos, address _poseidon, address _eip712) OmniverseAABeacon(utxos, _poseidon, _eip712) {
+    constructor(address _sysConfig, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) OmniverseAABeacon(_sysConfig, _utxos, _poseidon, _eip712) {
         
     }
 
