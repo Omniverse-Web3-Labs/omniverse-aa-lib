@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./interfaces/IOmniverseSysConfigAA.sol";
 
-contract OmniverseSysConfig is IOmniverseSysConfigAA {
+contract OmniverseSysConfigAA is IOmniverseSysConfigAA {
     // the fee token asset id
     bytes32 gasAssetId_;
     // the fee token receiver

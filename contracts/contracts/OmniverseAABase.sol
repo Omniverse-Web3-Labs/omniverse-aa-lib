@@ -9,15 +9,6 @@ import "./lib/Utils.sol";
 import "./interfaces/IOmniverseEIP712.sol";
 import "./interfaces/IOmniverseSysConfigAA.sol";
 
-uint128 constant GAS_FEE = 1;
-uint256 constant MAX_UTXO = 20;
-bytes32 constant GAS_ASSET_ID = 0;
-bytes32 constant GAS_RECEIVER = hex"7947cf497935a5f3be881187710fbe139be9d80aa63df4f59c93ca320465e4bd";
-address constant STATE_KEEPER = address(0xb3275a3200EE0312005306943BF7e5e20Cefb5b1);
-address constant LOCAL_ENTRY = address(0xE24A584e702D96591825e4daF44157f592d37D34);
-uint8 constant DECIMALS = 18;
-uint8 constant TOKEN_NAME_LENGTH_LIMIT = 24;
-
 abstract contract OmniverseAABase is IOmniverseAA {
     using EnumerableUTXOMap for EnumerableUTXOMap.Bytes32ToUTXOMap;
 
