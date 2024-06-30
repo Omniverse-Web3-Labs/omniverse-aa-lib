@@ -1,6 +1,6 @@
 import hre, { ethers } from "hardhat";
 import LocalEntryModule from "../ignition/modules/LocalEntry";
-import saveDeployInfo from "./deployment";
+import saveDeployInfo from "./saveDeployInfo";
 
 
 async function main() {
@@ -8,7 +8,7 @@ async function main() {
 
   console.log(`LocalEntryModule deployed to: ${localEntry.target}`);
   
-  saveDeployInfo("localEntry", localEntry.target as string);
+  await saveDeployInfo("localEntry", localEntry.target as string);
 }
 
 main().catch(console.error);

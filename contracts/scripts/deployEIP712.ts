@@ -1,6 +1,6 @@
 import hre, { ethers } from "hardhat";
 import OmniverseEIP712 from "../ignition/modules/OmniverseEIP712";
-import saveDeployInfo from "./deployment";
+import saveDeployInfo from "./saveDeployInfo";
 import fs from "fs";
 
 const PARAMETER_FILE = "./scripts/parameters.json";
@@ -21,7 +21,7 @@ async function main() {
 
   console.log(`OmniverseEIP712 deployed to: ${eip712.target}`);
   
-  saveDeployInfo("eip712", eip712.target as string);
+  await saveDeployInfo("eip712", eip712.target as string);
 }
 
 main().catch(console.error);

@@ -1,6 +1,6 @@
 import hre, { ethers } from "hardhat";
 import SysConfigAA from "../ignition/modules/SysConfigAA";
-import saveDeployInfo from "./deployment";
+import saveDeployInfo from "./saveDeployInfo";
 import fs from "fs";
 
 const PARAMETER_FILE = "./scripts/parameters.json";
@@ -25,7 +25,7 @@ async function main() {
 
   console.log(`SysConfigAA deployed to: ${sysConfigAA.target}`);
   
-  saveDeployInfo("sysConfigAA", sysConfigAA.target as string);
+  await saveDeployInfo("sysConfigAA", sysConfigAA.target as string);
 }
 
 main().catch(console.error);
