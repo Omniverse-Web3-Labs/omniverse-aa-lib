@@ -34,6 +34,18 @@ contract MockLocalEntry is ILocalEntry {
      */
     function getPubkeys(address AAContract) external view returns (bytes[] memory pubkeys) {
 
+    }/**
+     * @notice Returns the Omniverse AA address bound with the specified public key
+     * @param pubkey The public key to query
+     * @return AAContract The Omniverse AA address
+     */
+    function getAAContract(bytes calldata pubkey) external view returns (address AAContract) {
+        if (registered) {
+            return address(this);
+        }
+        else {
+            return address(0);
+        }
     }
 
     /**

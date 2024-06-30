@@ -17,9 +17,9 @@ abstract contract OmniverseAABase is IOmniverseAA {
     // next index of transation to be signed
     uint256 nextTxIndex;
     // public key
-    bytes32 pubkey;
-    // the corresponding address of the pubkey
-    address addrPubkey;
+    bytes32 AASignerPubkey;
+    // the corresponding address of the public key
+    address AASignerAddr;
     // asset id mapping to UTXO set
     mapping(bytes32 => EnumerableUTXOMap.Bytes32ToUTXOMap) assetIdMapToUTXOSet;
     // used to calculate Poseidon hash
@@ -51,6 +51,18 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @param sender The sender calling the contract
      */
     error SenderNotRegistered(address sender);
+
+    /**
+     * @notice Throws when it failed to register signer
+     * @param boundSigner The signer public key bound with the contract
+     */
+    error RegisterErrorWithSignerNotExpected(bytes32 boundSigner);
+
+    /**
+     * @notice Throws when the public key of AA signer already registered
+     * @param pubkey The signer public key bound with the contract
+     */
+    error AASignerPublicKeyAlreadyRegistered(bytes32 pubkey);
 
     /**
      * @notice Throws when a transaction submitted to the contract not exists
@@ -86,7 +98,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error TokenNameLengthExceedLimit(uint256 nameLength);
 
-    constructor(address _sysConfig, bytes memory _uncompressedPublicKey, bytes memory _signature, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) {
+    constructor(address _sysConfig, bytes memory _AASignerPubkey, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) {
         poseidon = IPoseidon(_poseidon);
         eip712 = IOmniverseEIP712(_eip712);
 
@@ -110,7 +122,16 @@ abstract contract OmniverseAABase is IOmniverseAA {
             IOmniverseSysConfigAA(_sysConfig).localEntry()
         );
 
-        _register(_uncompressedPublicKey, _signature);
+        bytes32 _pubkey;
+        assembly {
+            _pubkey := mload(add(_AASignerPubkey, 32))
+        }
+
+        AASignerPubkey = _pubkey;
+
+        if (ILocalEntry(sysConfig.localEntry).getAAContract(_AASignerPubkey) != address(0)) {
+            revert AASignerPublicKeyAlreadyRegistered(AASignerPubkey);
+        }
     }
 
     /**
@@ -119,7 +140,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @param signature The signature for the transaction
      */
     function submitTx(uint256 txIndex, bytes calldata signature) external {
-        if (addrPubkey != msg.sender) {
+        if (AASignerAddr != msg.sender) {
             revert SenderNotRegistered(msg.sender);
         }
 
@@ -159,7 +180,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @return publicKey Public keys of the AA contract
      */
     function getPubkey() external view returns (bytes32 publicKey) {
-        return pubkey;
+        return AASignerPubkey;
     }
 
     /**
@@ -179,13 +200,16 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @param uncompressedPublicKey Uncompress public key
      * @param signature The signature signed by AA private key
      */
-    function _register(bytes memory uncompressedPublicKey, bytes memory signature) internal {
+    function register(bytes calldata uncompressedPublicKey, bytes calldata signature) public {
         bytes32 _pubkey;
         assembly {
-            _pubkey := mload(add(uncompressedPublicKey, 32))
+            _pubkey := calldataload(add(uncompressedPublicKey.offset, 0))
         }
-        pubkey = _pubkey;
-        addrPubkey = Utils.pubKeyToAddress(uncompressedPublicKey);
+        
+        if (_pubkey != AASignerPubkey) {
+            revert RegisterErrorWithSignerNotExpected(AASignerPubkey);
+        }
+        AASignerAddr = Utils.pubKeyToAddress(uncompressedPublicKey);
 
         bytes[] memory publicKeys = new bytes[](1);
         publicKeys[0] = uncompressedPublicKey;
@@ -214,7 +238,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         // add new UTXOs
         for (uint64 i = 0; i < outputs.length; i++) {
-            if (outputs[i].omniAddress != pubkey) {
+            if (outputs[i].omniAddress != AASignerPubkey) {
                 continue;
             }
             
@@ -222,7 +246,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
                 abi.encodePacked(txid, i)
             );
             UTXOs.set(key, Types.UTXO(
-                pubkey,
+                AASignerPubkey,
                 assetId,
                 txid,
                 i,
@@ -278,7 +302,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             gasOutputs = new Types.Output[](extraOutputs.length + 2);
             // charge
             gasOutputs[extraOutputs.length + 1] = Types.Output(
-                pubkey,
+                AASignerPubkey,
                 inputGas - neededGasFee
             );
         }
@@ -346,7 +370,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             outputs = new Types.Output[](outputsNeeded.length + 1);
             // charge
             outputs[outputsNeeded.length] = Types.Output(
-                pubkey,
+                AASignerPubkey,
                 inputAmount - neededAmount
             );
         }

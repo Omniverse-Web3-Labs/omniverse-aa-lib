@@ -95,6 +95,15 @@ contract LocalEntry is ILocalEntry {
     }
 
     /**
+     * @notice Returns the Omniverse AA address bound with the specified public key
+     * @param pubkey The public key to query
+     * @return AAContract The Omniverse AA address
+     */
+    function getAAContract(bytes calldata pubkey) external view returns (address AAContract) {
+        AAContract = pubkeyMapToOmniverseAA[pubkey];
+    }
+
+    /**
      * @notice The AA Contract submits signed tx to the local entry contract
      * @param signedTx Signed omniverse transaction
      */
