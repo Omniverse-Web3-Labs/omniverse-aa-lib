@@ -1,0 +1,8 @@
+{
+    "eip712": {
+        "name": "Omniverse Transaction",
+        "version": "1",
+        "chainId": 1337,
+        "verifyContract": "0xd03A47C67F69880eA27Fd48da4600b2e35D349aC"
+    }
+}
