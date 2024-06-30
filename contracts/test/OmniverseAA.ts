@@ -99,9 +99,9 @@ describe('OmniverseAA', function () {
 
     async function deploySysConfig() {
         // Omniverse system config
-        const OmniverseSysConfig =
-            await hre.ethers.getContractFactory('OmniverseSysConfig');
-        const sysConfig = await OmniverseSysConfig.deploy(
+        const OmniverseSysConfigAA =
+            await hre.ethers.getContractFactory('OmniverseSysConfigAA');
+        const sysConfig = await OmniverseSysConfigAA.deploy(
             GAS_ASSET_ID,
             GAS_RECEIVER,
             GAS_FEE,
@@ -136,13 +136,14 @@ describe('OmniverseAA', function () {
         );
         const omniverseAA = await OmniverseAABase.deploy(
             sysConfig.target,
+            wallets[0].publicKey,
+            SIGNATURE,
             [],
             poseidon.target,
             eip712.target
         );
 
         await omniverseAA.setLocalEntry(localEntry.target);
-        await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
         return { omniverseAA };
     }
@@ -169,6 +170,8 @@ describe('OmniverseAA', function () {
         );
         const omniverseAA = await OmniverseAABase.deploy(
             sysConfig.target,
+            wallets[0].publicKey,
+            SIGNATURE,
             generateUTXOs(wallets[0].compressed),
             poseidon.target,
             eip712.target
@@ -176,8 +179,6 @@ describe('OmniverseAA', function () {
 
         const localEntry = await deployLocalEntry();
         await omniverseAA.setLocalEntry(localEntry.target);
-
-        await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
         return {
             omniverseAA,
@@ -226,6 +227,8 @@ describe('OmniverseAA', function () {
         const stateKeeper = await MockStateKeeper.deploy();
         const omniverseAA = await OmniverseAA.deploy(
             sysConfig.target,
+            wallets[0].publicKey,
+            SIGNATURE,
             generateUTXOs(wallets[0].compressed),
             poseidon.target,
             eip712.target
@@ -235,8 +238,6 @@ describe('OmniverseAA', function () {
 
         await omniverseAA.setLocalEntry(localEntry.target);
         await omniverseAA.setStateKeeper(stateKeeper.target);
-
-        await omniverseAA.register(wallets[0].publicKey, SIGNATURE)
 
         return {
             omniverseAA,
@@ -300,13 +301,14 @@ describe('OmniverseAA', function () {
             );
             const omniverseAA = await OmniverseAALocal.deploy(
                 sysConfig.target,
+                wallets[0].publicKey,
+                SIGNATURE,
                 [],
                 poseidon.target,
                 eip712.target
             );
 
             await omniverseAA.setLocalEntry(localEntry.target);
-            await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
             const utxos = await omniverseAA.getUTXOs(GAS_ASSET_ID);
             expect(utxos.length).to.equal(0);
@@ -335,13 +337,14 @@ describe('OmniverseAA', function () {
             console.log('wallets[0].compressed', wallets[0]);
             const omniverseAA = await OmniverseAALocal.deploy(
                 sysConfig.target,
+                wallets[0].publicKey,
+                SIGNATURE,
                 generateUTXOs(wallets[0].compressed),
                 poseidon.target,
                 eip712.target
             );
 
             await omniverseAA.setLocalEntry(localEntry.target);
-            await omniverseAA.register(wallets[0].publicKey, SIGNATURE);
 
             const utxos = await omniverseAA.getUTXOs(GAS_ASSET_ID);
             expect(utxos.length).to.equal(GENERATE_UTXO_NUM);

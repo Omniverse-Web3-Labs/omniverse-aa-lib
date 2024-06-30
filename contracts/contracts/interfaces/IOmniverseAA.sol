@@ -50,11 +50,4 @@ interface IOmniverseAA {
      * @return unsignedTx The next unsigned transaction
      */
     function getUnsignedTx() external view returns (uint256 txIndex, OmniverseTxWithTxid memory unsignedTx);
-
-    /**
-     * @notice Register AA to Local Entry contract
-     * @param uncompressedPublicKey Uncompress public key
-     * @param signature The signature signed by AA private key
-     */
-    function register(bytes calldata uncompressedPublicKey, bytes calldata signature) external;
 }

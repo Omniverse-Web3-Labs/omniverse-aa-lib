@@ -86,7 +86,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error TokenNameLengthExceedLimit(uint256 nameLength);
 
-    constructor(address _sysConfig, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) {
+    constructor(address _sysConfig, bytes memory _uncompressedPublicKey, bytes memory _signature, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) {
         poseidon = IPoseidon(_poseidon);
         eip712 = IOmniverseEIP712(_eip712);
 
@@ -109,6 +109,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
             IOmniverseSysConfigAA(_sysConfig).stateKeeper(),
             IOmniverseSysConfigAA(_sysConfig).localEntry()
         );
+
+        _register(_uncompressedPublicKey, _signature);
     }
 
     /**
@@ -177,10 +179,10 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @param uncompressedPublicKey Uncompress public key
      * @param signature The signature signed by AA private key
      */
-    function register(bytes calldata uncompressedPublicKey, bytes calldata signature) external {
+    function _register(bytes memory uncompressedPublicKey, bytes memory signature) internal {
         bytes32 _pubkey;
         assembly {
-            _pubkey := calldataload(add(uncompressedPublicKey.offset, 0))
+            _pubkey := mload(add(uncompressedPublicKey, 32))
         }
         pubkey = _pubkey;
         addrPubkey = Utils.pubKeyToAddress(uncompressedPublicKey);
