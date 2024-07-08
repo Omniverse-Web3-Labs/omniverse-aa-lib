@@ -6,7 +6,7 @@ import fs from "fs";
 const PARAMETER_FILE = "./scripts/parameters.json";
 
 async function main() {
-  const parameters = JSON.parse(fs.readFileSync(PARAMETER_FILE).toString())['eip712'];
+  const parameters = JSON.parse(fs.readFileSync(PARAMETER_FILE).toString())['eip712AA'];
 
   const { eip712 } = await hre.ignition.deploy(OmniverseEIP712, {
     parameters: {
@@ -21,7 +21,7 @@ async function main() {
 
   console.log(`OmniverseEIP712 deployed to: ${eip712.target}`);
   
-  await saveDeployInfo("eip712", eip712.target as string);
+  await saveDeployInfo("eip712AA", eip712.target as string);
 }
 
 main().catch(console.error);

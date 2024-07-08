@@ -13,5 +13,5 @@ export default async function saveDeployInfo(moduleName: string, address: string
     }
 
     data[moduleName] = address;
-    fs.writeFileSync(DEPLOYMENT_FILE, JSON.stringify(data));
+    fs.writeFileSync(DEPLOYMENT_FILE, JSON.stringify(data, null, '\t'));
 }
