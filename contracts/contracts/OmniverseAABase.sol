@@ -504,10 +504,10 @@ abstract contract OmniverseAABase is IOmniverseAA {
             transferTx = Types.Transfer(
                 assetId,
                 "0x",
-                gasInputs,
-                gasOutputs,
                 inputs,
-                outputs
+                outputs,
+                gasInputs,
+                gasOutputs
             );
 
             UTXONumber = inputs.length + outputs.length + gasInputs.length + gasOutputs.length;

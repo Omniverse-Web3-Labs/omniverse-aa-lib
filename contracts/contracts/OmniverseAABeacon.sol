@@ -42,18 +42,23 @@ abstract contract OmniverseAABeacon is OmniverseAABase {
             bytes memory txDataPacked = Utils.deployToBytes(deployTx);
             txid = Utils.calTxId(txDataPacked, poseidon);
             onDeploy(txid, ethAddr, deployTx, customData);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, deployTx.feeInputs, deployTx.feeOutputs);
         }
         else if (omniTx.txType == Types.TxType.Mint) {
             Types.Mint memory mintTx = abi.decode(omniTx.txData, (Types.Mint));
             bytes memory txDataPacked = Utils.MintToBytes(mintTx);
             txid = Utils.calTxId(txDataPacked, poseidon);
             onMint(txid, ethAddr, mintTx, customData);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, mintTx.feeInputs, mintTx.feeOutputs);
+            _updateUTXOs(mintTx.assetId, txid, new Types.Input[](0), mintTx.outputs);
         }
         else if (omniTx.txType == Types.TxType.Transfer) {
             Types.Transfer memory transferTx = abi.decode(omniTx.txData, (Types.Transfer));
             bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
             txid = Utils.calTxId(txDataPacked, poseidon);
             onTransfer(txid, ethAddr, transferTx, customData);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, transferTx.feeInputs, transferTx.feeOutputs);
+            _updateUTXOs(transferTx.assetId, txid, transferTx.inputs, transferTx.outputs);
         }
 
         bool txExist = IStateKeeperBeacon(sysConfig.stateKeeper).containsTxID(txid);
