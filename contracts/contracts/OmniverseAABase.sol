@@ -16,6 +16,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
     OmniverseTxWithTxid[] unsignedTxs;
     // next index of transation to be signed
     uint256 nextTxIndex;
+    // uncompressed public key
+    bytes AASignerPubkeyFull;
     // public key
     bytes32 AASignerPubkey;
     // the corresponding address of the public key
@@ -128,6 +130,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
         }
 
         AASignerPubkey = _pubkey;
+        AASignerPubkeyFull = _AASignerPubkey;
 
         if (ILocalEntry(sysConfig.localEntry).getAAContract(_AASignerPubkey) != address(0)) {
             revert AASignerPublicKeyAlreadyRegistered(AASignerPubkey);
@@ -154,7 +157,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         OmniverseTxWithTxid storage omniTx = unsignedTxs[nextTxIndex];
 
-        ILocalEntry(sysConfig.localEntry).submitTx(SignedTx(omniTx.txid, omniTx.otx.txType, omniTx.otx.txData, signature));
+        ILocalEntry(sysConfig.localEntry).submitTx(SignedTx(omniTx.txid, omniTx.otx.txType, omniTx.otx.txData, signature), AASignerPubkeyFull);
 
         nextTxIndex++;
     }

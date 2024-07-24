@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./interfaces/IOmniverseEIP712.sol";
 import "./interfaces/ILocalEntry.sol";
 import "./lib/Utils.sol";
 
@@ -14,6 +15,7 @@ contract LocalEntry is ILocalEntry {
     mapping(bytes32 => SignedTx) txidMapToSignedOmniverseTx;
     mapping(bytes32 => address) txidMapToOmniverseAA;
     bytes32[] txidArray;
+    IOmniverseEIP712 eip712;
 
     /**
      * @notice Throws when length of public keys and signatures are not equal
@@ -41,6 +43,13 @@ contract LocalEntry is ILocalEntry {
     error SenderNotRegistered(address sender);
 
     /**
+     * @notice Throws when a public key is not bound to the AA contract
+     * @param pubkey Public key
+     * @param AAContract The AA contract which uses the public key
+     */
+    error PublicKeyNotBoundToAAContract(bytes pubkey, address AAContract);
+
+    /**
      * @notice Throws when transaction with the same txid exists
      * @param txid The id of submitted transaction
      */
@@ -52,8 +61,8 @@ contract LocalEntry is ILocalEntry {
      */
     error SignatureEmpty(bytes32 txid);
 
-    constructor() {
-
+    constructor(address _eip712) {
+        eip712 = IOmniverseEIP712(_eip712);
     }
 
     /**
@@ -104,13 +113,20 @@ contract LocalEntry is ILocalEntry {
     }
 
     /**
-     * @notice The AA Contract submits signed tx to the local entry contract
+     * @notice The AA contract submits signed tx to the local entry contract
      * @param signedTx Signed omniverse transaction
+     * @param pubkey The public key which signs the transaction
      */
-    function submitTx(SignedTx calldata signedTx) external {
+    function submitTx(SignedTx calldata signedTx, bytes calldata pubkey) external {
         if (omniverseAAMapToPubkeys[msg.sender].length == 0) {
             revert SenderNotRegistered(msg.sender);
         }
+
+        if (pubkeyMapToOmniverseAA[pubkey] != msg.sender) {
+            revert PublicKeyNotBoundToAAContract(pubkey, msg.sender);
+        }
+
+        eip712.verifySignature(signedTx.txType, signedTx.txData, pubkey);
 
         if (keccak256(signedTx.signature) == keccak256(bytes(""))) {
             revert SignatureEmpty(signedTx.txid);

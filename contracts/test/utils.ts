@@ -126,6 +126,12 @@ const EIP712_TRANSFER_TYPES = {
     ]
 };
 
+export const TxType = {
+    DEPLOY: 0,
+    MINt: 1,
+    TRANSFER: 2
+}
+
 export async function typedSignDeploy(signer: any, deploy: Deploy) {
     let fee_inputs = [];
     for (let i = 0; i < deploy.feeInputs.length; i++) {
