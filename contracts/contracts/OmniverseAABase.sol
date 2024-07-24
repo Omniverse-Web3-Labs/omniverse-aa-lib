@@ -157,7 +157,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         OmniverseTxWithTxid storage omniTx = unsignedTxs[nextTxIndex];
 
-        ILocalEntry(sysConfig.localEntry).submitTx(SignedTx(omniTx.txid, omniTx.otx.txType, omniTx.otx.txData, signature), AASignerPubkeyFull);
+        ILocalEntry(sysConfig.localEntry).submitTx(omniTx.otx.txType, omniTx.otx.txData, AASignerPubkeyFull);
 
         nextTxIndex++;
     }

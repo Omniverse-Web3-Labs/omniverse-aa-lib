@@ -245,12 +245,8 @@ describe('LocalEntry', function () {
 
             let signers = await hre.ethers.getSigners();
             await expect(
-                localEntry.connect(signers[2]).submitTx({
-                    txid: TX_ID,
-                    txType: 0,
-                    txData: TX_DATA,
-                    signature: SIGNATURE
-                }, signer1.wallet.publicKey)
+                localEntry.connect(signers[2]).submitTx(0,
+                    TX_DATA, signer1.wallet.publicKey)
             ).to.be.revertedWithCustomError(localEntry, 'SenderNotRegistered');
         });
 
@@ -260,30 +256,9 @@ describe('LocalEntry', function () {
             );
 
             await expect(
-                localEntry.submitTx({
-                    txid: TX_ID,
-                    txType: 0,
-                    txData: TX_DATA,
-                    signature: SIGNATURE
-                }, other.wallet.publicKey)
+                localEntry.submitTx(0, TX_DATA, other.wallet.publicKey)
             ).to.be.revertedWithCustomError(localEntry, 'PublicKeyNotBoundToAAContract')
             .withArgs(other.wallet.publicKey, signer1.signer.address);
-        });
-
-        it('Should fail with signature empty', async function () {
-            const { localEntry, signer1 } = await loadFixture(
-                deployLocalEntrySCWithPublicKeys
-            );
-
-            const txData = await getTxData(signer1);
-            await expect(
-                localEntry.submitTx({
-                    txid: TX_ID,
-                    txType: txData.txType,
-                    txData: txData.txData,
-                    signature: "0x"
-                }, signer1.wallet.publicKey)
-            ).to.be.revertedWithCustomError(localEntry, 'SignatureEmpty');
         });
 
         it('Should pass with sender registered', async function () {
@@ -294,12 +269,7 @@ describe('LocalEntry', function () {
             const NEW_TX_ID =
                 '0x1234567812345678123456781234567812345678123456781234567812345679';
             const txData = await getTxData(signer1);
-            await localEntry.submitTx({
-                txid: NEW_TX_ID,
-                txType: txData.txType,
-                txData: txData.txData,
-                signature: txData.signature
-            }, signer1.wallet.publicKey);
+            await localEntry.submitTx(txData.txType, txData.txData, signer1.wallet.publicKey);
             let signedTx = await localEntry.getTransaction(NEW_TX_ID);
             expect(signedTx.address).not.to.equal('0x');
             signedTx = await localEntry.getTransactionByIndex(0);
@@ -314,19 +284,9 @@ describe('LocalEntry', function () {
             );
 
             const txData = await getTxData(signer1);
-            await localEntry.submitTx({
-                txid: TX_ID,
-                txType: txData.txType,
-                txData: txData.txData,
-                signature: txData.signature
-            }, signer1.wallet.publicKey);
+            await localEntry.submitTx(txData.txType, txData.txData, signer1.wallet.publicKey);
             await expect(
-                localEntry.submitTx({
-                    txid: TX_ID,
-                    txType: txData.txType,
-                    txData: txData.txData,
-                    signature: txData.signature
-                }, signer1.wallet.publicKey)
+                localEntry.submitTx(txData.txType, txData.txData, signer1.wallet.publicKey)
             ).to.be.revertedWithCustomError(localEntry, 'TransactionExists');
         });
     });

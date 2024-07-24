@@ -58,12 +58,6 @@ contract LocalEntry is ILocalEntry {
      */
     error TransactionExists(bytes32 txid);
 
-    /**
-     * @notice Throws when signature is empty
-     * @param txid The id of submitted transaction
-     */
-    error SignatureEmpty(bytes32 txid);
-
     constructor(address _eip712, address _poseidon) {
         eip712 = IOmniverseEIP712(_eip712);
         poseidon = IPoseidon(_poseidon);
@@ -118,10 +112,11 @@ contract LocalEntry is ILocalEntry {
 
     /**
      * @notice The AA contract submits signed tx to the local entry contract
-     * @param signedTx Signed omniverse transaction
+     * @param txType Omniverse transaction type
+     * @param txData Omniverse transaction data
      * @param pubkey The public key which signs the transaction
      */
-    function submitTx(SignedTx calldata signedTx, bytes calldata pubkey) external {
+    function submitTx(Types.TxType txType, bytes calldata txData, bytes calldata pubkey) external {
         if (omniverseAAMapToPubkeys[msg.sender].length == 0) {
             revert SenderNotRegistered(msg.sender);
         }
@@ -130,38 +125,37 @@ contract LocalEntry is ILocalEntry {
             revert PublicKeyNotBoundToAAContract(pubkey, msg.sender);
         }
 
-        eip712.verifySignature(signedTx.txType, signedTx.txData, pubkey);
+        eip712.verifySignature(txType, txData, pubkey);
 
-        if (keccak256(signedTx.signature) == keccak256(bytes(""))) {
-            revert SignatureEmpty(signedTx.txid);
-        }
-
-        if (txidMapToSignedOmniverseTx[signedTx.txid].txid != bytes32(0)) {
-            revert TransactionExists(signedTx.txid);
-        }
-
-        SignedTx storage stx = txidMapToSignedOmniverseTx[signedTx.txid];
-        if (signedTx.txType == Types.TxType.Deploy) {
-            Types.Deploy memory omniTx = abi.decode(signedTx.txData, (Types.Deploy));
+        bytes32 txid;
+        if (txType == Types.TxType.Deploy) {
+            Types.Deploy memory omniTx = abi.decode(txData, (Types.Deploy));
             bytes memory txDataPacked = Utils.deployToBytes(omniTx);
-            stx.txid = Utils.calTxId(txDataPacked, poseidon);
+            txid = Utils.calTxId(txDataPacked, poseidon);
         }
-        else if (signedTx.txType == Types.TxType.Mint) {
-            Types.Mint memory omniTx = abi.decode(signedTx.txData, (Types.Mint));
+        else if (txType == Types.TxType.Mint) {
+            Types.Mint memory omniTx = abi.decode(txData, (Types.Mint));
             bytes memory txDataPacked = Utils.MintToBytes(omniTx);
-            stx.txid = Utils.calTxId(txDataPacked, poseidon);
+            txid = Utils.calTxId(txDataPacked, poseidon);
         }
-        else if (signedTx.txType == Types.TxType.Transfer) {
-            Types.Transfer memory omniTx = abi.decode(signedTx.txData, (Types.Transfer));
+        else if (txType == Types.TxType.Transfer) {
+            Types.Transfer memory omniTx = abi.decode(txData, (Types.Transfer));
             bytes memory txDataPacked = Utils.TransferToBytes(omniTx);
-            stx.txid = Utils.calTxId(txDataPacked, poseidon);
+            txid = Utils.calTxId(txDataPacked, poseidon);
         }
-        stx.txData = signedTx.txData;
-        stx.signature = signedTx.signature;
 
-        txidMapToOmniverseAA[signedTx.txid] = msg.sender;
+        if (txidMapToSignedOmniverseTx[txid].txid != bytes32(0)) {
+            revert TransactionExists(txid);
+        }
 
-        txidArray.push(signedTx.txid);
+        SignedTx storage stx = txidMapToSignedOmniverseTx[txid];
+        stx.txid = txid;
+        stx.txType = txType;
+        stx.txData = txData;
+
+        txidMapToOmniverseAA[txid] = msg.sender;
+
+        txidArray.push(txid);
     }
 
     /**
