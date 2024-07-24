@@ -50,10 +50,11 @@ contract MockLocalEntry is ILocalEntry {
 
     /**
      * @notice The AA contract submits signed tx to the local entry contract
-     * @param signedTx Signed omniverse transaction
+     * @param txType Omniverse transaction type
+     * @param txData Omniverse transaction data
      * @param pubkey The public key which signs the transaction
      */
-    function submitTx(SignedTx calldata signedTx, bytes calldata pubkey) external {
+    function submitTx(Types.TxType txType, bytes calldata txData, bytes calldata pubkey) external {
         if (!registered) {
             revert SenderNotRegistered(msg.sender);
         }
