@@ -78,6 +78,9 @@ describe('LocalEntry', function () {
     }
 
     async function deployLocalEntrySC() {
+        const Poseidon = await hre.ethers.getContractFactory('Poseidon');
+        const poseidon = await Poseidon.deploy();
+
         const OmniverseEIP712 = await hre.ethers.getContractFactory('OmniverseEIP712');
         const eip712 = await OmniverseEIP712.deploy(
             DOMAIN.name,
@@ -87,7 +90,7 @@ describe('LocalEntry', function () {
         );
 
         const LocalEntrySC = await hre.ethers.getContractFactory('LocalEntry');
-        const localEntry = await LocalEntrySC.deploy(eip712.target);
+        const localEntry = await LocalEntrySC.deploy(eip712.target, poseidon.target);
 
         return { localEntry };
     }

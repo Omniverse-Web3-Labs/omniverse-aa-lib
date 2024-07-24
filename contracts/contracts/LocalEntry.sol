@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/IOmniverseEIP712.sol";
 import "./interfaces/ILocalEntry.sol";
 import "./lib/Utils.sol";
+import "./lib/Types.sol";
 
 string constant PERSONAL_SIGN_PREFIX = "\x19Ethereum Signed Message:\n";
 string constant OMNIVERSE_AA_SC_PREFIX = "Register to Omniverse AA: ";
@@ -16,6 +17,8 @@ contract LocalEntry is ILocalEntry {
     mapping(bytes32 => address) txidMapToOmniverseAA;
     bytes32[] txidArray;
     IOmniverseEIP712 eip712;
+    // used to calculate Poseidon hash
+    IPoseidon poseidon;
 
     /**
      * @notice Throws when length of public keys and signatures are not equal
@@ -61,8 +64,9 @@ contract LocalEntry is ILocalEntry {
      */
     error SignatureEmpty(bytes32 txid);
 
-    constructor(address _eip712) {
+    constructor(address _eip712, address _poseidon) {
         eip712 = IOmniverseEIP712(_eip712);
+        poseidon = IPoseidon(_poseidon);
     }
 
     /**
@@ -137,8 +141,21 @@ contract LocalEntry is ILocalEntry {
         }
 
         SignedTx storage stx = txidMapToSignedOmniverseTx[signedTx.txid];
-        stx.txid = signedTx.txid;
-        stx.txType = signedTx.txType;
+        if (signedTx.txType == Types.TxType.Deploy) {
+            Types.Deploy memory omniTx = abi.decode(signedTx.txData, (Types.Deploy));
+            bytes memory txDataPacked = Utils.deployToBytes(omniTx);
+            stx.txid = Utils.calTxId(txDataPacked, poseidon);
+        }
+        else if (signedTx.txType == Types.TxType.Mint) {
+            Types.Mint memory omniTx = abi.decode(signedTx.txData, (Types.Mint));
+            bytes memory txDataPacked = Utils.MintToBytes(omniTx);
+            stx.txid = Utils.calTxId(txDataPacked, poseidon);
+        }
+        else if (signedTx.txType == Types.TxType.Transfer) {
+            Types.Transfer memory omniTx = abi.decode(signedTx.txData, (Types.Transfer));
+            bytes memory txDataPacked = Utils.TransferToBytes(omniTx);
+            stx.txid = Utils.calTxId(txDataPacked, poseidon);
+        }
         stx.txData = signedTx.txData;
         stx.signature = signedTx.signature;
 
