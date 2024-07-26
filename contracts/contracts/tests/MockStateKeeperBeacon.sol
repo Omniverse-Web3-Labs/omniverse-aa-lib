@@ -13,7 +13,7 @@ contract MockStateKeeperBeacon is IStateKeeperBeacon {
         isIncluded = _included;
     }
 
-    function containsTxID(bytes32 txid) external returns (bool) {
+    function containsTxID(bytes32 txid) external view returns (bool) {
         return isIncluded;
     }
 }

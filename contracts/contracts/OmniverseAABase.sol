@@ -159,19 +159,19 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         bytes memory txData;
         if (omniTx.otx.txType == Types.TxType.Deploy) {
-            Types.Deploy memory omniTx = abi.decode(omniTx.otx.txData, (Types.Deploy));
-            omniTx.signature = signature;
-            txData = abi.encode(omniTx);
+            Types.Deploy memory deploy = abi.decode(omniTx.otx.txData, (Types.Deploy));
+            deploy.signature = signature;
+            txData = abi.encode(deploy);
         }
         else if (omniTx.otx.txType == Types.TxType.Mint) {
-            Types.Mint memory omniTx = abi.decode(omniTx.otx.txData, (Types.Mint));
-            omniTx.signature = signature;
-            txData = abi.encode(omniTx);
+            Types.Mint memory mint = abi.decode(omniTx.otx.txData, (Types.Mint));
+            mint.signature = signature;
+            txData = abi.encode(mint);
         }
         else if (omniTx.otx.txType == Types.TxType.Transfer) {
-            Types.Transfer memory omniTx = abi.decode(omniTx.otx.txData, (Types.Transfer));
-            omniTx.signature = signature;
-            txData = abi.encode(omniTx);
+            Types.Transfer memory transfer = abi.decode(omniTx.otx.txData, (Types.Transfer));
+            transfer.signature = signature;
+            txData = abi.encode(transfer);
         }
 
         ILocalEntry(sysConfig.localEntry).submitTx(omniTx.otx.txType, txData, AASignerPubkeyFull);
