@@ -12,5 +12,5 @@ interface IStateKeeperBeacon {
      * @notice Checks if an omniverse transaction with the transaction id `txid` exists
      * @param txid The transaction id to be queried
      */
-    function containsTxID(bytes32 txid) external returns (bool);
+    function containsTxID(bytes32 txid) external view returns (bool);
 }
