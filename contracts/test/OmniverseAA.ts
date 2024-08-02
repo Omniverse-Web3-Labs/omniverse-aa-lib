@@ -723,7 +723,7 @@ describe('OmniverseAA', function () {
                         );
 
                     await stateKeeper.setIsIncluded(true);
-                    let deploy: Deploy = {
+                    let deploy: utils.Deploy = {
                         metadata: {
                             salt: METADATA_SALT,
                             name: METADATA_NAME,

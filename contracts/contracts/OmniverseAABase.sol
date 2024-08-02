@@ -16,6 +16,8 @@ abstract contract OmniverseAABase is IOmniverseAA {
     OmniverseTxWithTxid[] unsignedTxs;
     // next index of transation to be signed
     uint256 nextTxIndex;
+    // uncompressed public key
+    bytes AASignerPubkeyFull;
     // public key
     bytes32 AASignerPubkey;
     // the corresponding address of the public key
@@ -128,6 +130,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
         }
 
         AASignerPubkey = _pubkey;
+        AASignerPubkeyFull = _AASignerPubkey;
 
         if (ILocalEntry(sysConfig.localEntry).getAAContract(_AASignerPubkey) != address(0)) {
             revert AASignerPublicKeyAlreadyRegistered(AASignerPubkey);
@@ -154,7 +157,24 @@ abstract contract OmniverseAABase is IOmniverseAA {
 
         OmniverseTxWithTxid storage omniTx = unsignedTxs[nextTxIndex];
 
-        ILocalEntry(sysConfig.localEntry).submitTx(SignedTx(omniTx.txid, omniTx.otx.txType, omniTx.otx.txData, signature));
+        bytes memory txData;
+        if (omniTx.otx.txType == Types.TxType.Deploy) {
+            Types.Deploy memory deploy = abi.decode(omniTx.otx.txData, (Types.Deploy));
+            deploy.signature = signature;
+            txData = abi.encode(deploy);
+        }
+        else if (omniTx.otx.txType == Types.TxType.Mint) {
+            Types.Mint memory mint = abi.decode(omniTx.otx.txData, (Types.Mint));
+            mint.signature = signature;
+            txData = abi.encode(mint);
+        }
+        else if (omniTx.otx.txType == Types.TxType.Transfer) {
+            Types.Transfer memory transfer = abi.decode(omniTx.otx.txData, (Types.Transfer));
+            transfer.signature = signature;
+            txData = abi.encode(transfer);
+        }
+
+        ILocalEntry(sysConfig.localEntry).submitTx(omniTx.otx.txType, txData, AASignerPubkeyFull);
 
         nextTxIndex++;
     }

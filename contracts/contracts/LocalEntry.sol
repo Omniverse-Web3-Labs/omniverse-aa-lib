@@ -2,8 +2,10 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./interfaces/IOmniverseEIP712.sol";
 import "./interfaces/ILocalEntry.sol";
 import "./lib/Utils.sol";
+import "./lib/Types.sol";
 
 string constant PERSONAL_SIGN_PREFIX = "\x19Ethereum Signed Message:\n";
 string constant OMNIVERSE_AA_SC_PREFIX = "Register to Omniverse AA: ";
@@ -14,6 +16,9 @@ contract LocalEntry is ILocalEntry {
     mapping(bytes32 => SignedTx) txidMapToSignedOmniverseTx;
     mapping(bytes32 => address) txidMapToOmniverseAA;
     bytes32[] txidArray;
+    IOmniverseEIP712 eip712;
+    // used to calculate Poseidon hash
+    IPoseidon poseidon;
 
     /**
      * @notice Throws when length of public keys and signatures are not equal
@@ -41,19 +46,21 @@ contract LocalEntry is ILocalEntry {
     error SenderNotRegistered(address sender);
 
     /**
+     * @notice Throws when a public key is not bound to the AA contract
+     * @param pubkey Public key
+     * @param AAContract The AA contract which uses the public key
+     */
+    error PublicKeyNotBoundToAAContract(bytes pubkey, address AAContract);
+
+    /**
      * @notice Throws when transaction with the same txid exists
      * @param txid The id of submitted transaction
      */
     error TransactionExists(bytes32 txid);
 
-    /**
-     * @notice Throws when signature is empty
-     * @param txid The id of submitted transaction
-     */
-    error SignatureEmpty(bytes32 txid);
-
-    constructor() {
-
+    constructor(address _eip712, address _poseidon) {
+        eip712 = IOmniverseEIP712(_eip712);
+        poseidon = IPoseidon(_poseidon);
     }
 
     /**
@@ -104,31 +111,51 @@ contract LocalEntry is ILocalEntry {
     }
 
     /**
-     * @notice The AA Contract submits signed tx to the local entry contract
-     * @param signedTx Signed omniverse transaction
+     * @notice The AA contract submits signed tx to the local entry contract
+     * @param txType Omniverse transaction type
+     * @param txData Omniverse transaction data
+     * @param pubkey The public key which signs the transaction
      */
-    function submitTx(SignedTx calldata signedTx) external {
+    function submitTx(Types.TxType txType, bytes calldata txData, bytes calldata pubkey) external {
         if (omniverseAAMapToPubkeys[msg.sender].length == 0) {
             revert SenderNotRegistered(msg.sender);
         }
 
-        if (keccak256(signedTx.signature) == keccak256(bytes(""))) {
-            revert SignatureEmpty(signedTx.txid);
+        if (pubkeyMapToOmniverseAA[pubkey] != msg.sender) {
+            revert PublicKeyNotBoundToAAContract(pubkey, msg.sender);
         }
 
-        if (txidMapToSignedOmniverseTx[signedTx.txid].txid != bytes32(0)) {
-            revert TransactionExists(signedTx.txid);
+        eip712.verifySignature(txType, txData, pubkey);
+
+        bytes32 txid;
+        if (txType == Types.TxType.Deploy) {
+            Types.Deploy memory omniTx = abi.decode(txData, (Types.Deploy));
+            bytes memory txDataPacked = Utils.deployToBytes(omniTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
+        }
+        else if (txType == Types.TxType.Mint) {
+            Types.Mint memory omniTx = abi.decode(txData, (Types.Mint));
+            bytes memory txDataPacked = Utils.MintToBytes(omniTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
+        }
+        else if (txType == Types.TxType.Transfer) {
+            Types.Transfer memory omniTx = abi.decode(txData, (Types.Transfer));
+            bytes memory txDataPacked = Utils.TransferToBytes(omniTx);
+            txid = Utils.calTxId(txDataPacked, poseidon);
         }
 
-        SignedTx storage stx = txidMapToSignedOmniverseTx[signedTx.txid];
-        stx.txid = signedTx.txid;
-        stx.txType = signedTx.txType;
-        stx.txData = signedTx.txData;
-        stx.signature = signedTx.signature;
+        if (txidMapToSignedOmniverseTx[txid].txid != bytes32(0)) {
+            revert TransactionExists(txid);
+        }
 
-        txidMapToOmniverseAA[signedTx.txid] = msg.sender;
+        SignedTx storage stx = txidMapToSignedOmniverseTx[txid];
+        stx.txid = txid;
+        stx.txType = txType;
+        stx.txData = txData;
 
-        txidArray.push(signedTx.txid);
+        txidMapToOmniverseAA[txid] = msg.sender;
+
+        txidArray.push(txid);
     }
 
     /**

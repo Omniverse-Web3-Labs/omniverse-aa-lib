@@ -13,7 +13,6 @@ struct SignedTx {
     bytes32 txid;
     Types.TxType txType;
     bytes txData;
-    bytes signature;
 }
 
 /**
@@ -42,9 +41,11 @@ interface ILocalEntry {
 
     /**
      * @notice The AA contract submits signed tx to the local entry contract
-     * @param signedTx Signed omniverse transaction
+     * @param txType Omniverse transaction type
+     * @param txData Omniverse transaction data
+     * @param pubkey The public key which signs the transaction
      */
-    function submitTx(SignedTx calldata signedTx) external;
+    function submitTx(Types.TxType txType, bytes calldata txData, bytes calldata pubkey) external;
 
     /**
      * @notice Returns transaction data of specified `txid`

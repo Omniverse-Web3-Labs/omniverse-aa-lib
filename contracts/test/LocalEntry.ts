@@ -6,6 +6,7 @@ import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs';
 import { expect } from 'chai';
 import hre, { ethers } from 'hardhat';
 import ecdsa from 'secp256k1';
+import * as utils from './utils';
 
 const CHAIN_ID = '31337';
 const SIG_CHAIN_ID = ', chain id: '
@@ -17,10 +18,79 @@ const TX_DATA = '0x12345678';
 const SIGNATURE =
     '0x1234567812345678123456781234567812345678123456781234567812345678';
 
+const TOKEN_ASSET_ID =
+    '0x0000000000000000000000000000000000000000000000000000000000000001';
+const INPUT_AMOUNT = '1234605616436508552';
+const UTXO_INDEX = '287454020';
+
+const DOMAIN = {
+    name: 'Omniverse Transaction',
+    version: '1',
+    chainId: 1,
+    verifyingContract: '0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC'
+};
+
 describe('LocalEntry', function () {
+    async function getTxData(signer: any) {
+        let transfer: utils.Transfer = {
+            assetId: TOKEN_ASSET_ID,
+            signature: SIGNATURE,
+            inputs: [
+                {
+                    txid: TX_ID,
+                    index: UTXO_INDEX,
+                    amount: INPUT_AMOUNT,
+                    omniAddress: signer.wallet.compressed
+                }
+            ],
+            outputs: [
+                {
+                    omniAddress:
+                        '0x1122334455667788112233445566778811223344556677881122334455667788',
+                    amount: '1234605616436508552'
+                }
+            ],
+            feeInputs: [
+                {
+                    txid: TX_ID,
+                    index: UTXO_INDEX,
+                    amount: INPUT_AMOUNT,
+                    omniAddress: signer.wallet.compressed
+                }
+            ],
+            feeOutputs: [
+                {
+                    omniAddress:
+                        '0x1122334455667788112233445566778811223344556677881122334455667788',
+                    amount: '1234605616436508552'
+                }
+            ]
+        };
+        
+        const signature = await utils.typedSignTransfer(
+            signer.signer,
+            transfer
+        );
+        transfer.signature = signature;
+        const encoded = utils.encodeTransfer(transfer);
+        
+        return {txType: utils.TxType.TRANSFER, txData: encoded, signature};
+    }
+
     async function deployLocalEntrySC() {
+        const Poseidon = await hre.ethers.getContractFactory('Poseidon');
+        const poseidon = await Poseidon.deploy();
+
+        const OmniverseEIP712 = await hre.ethers.getContractFactory('OmniverseEIP712');
+        const eip712 = await OmniverseEIP712.deploy(
+            DOMAIN.name,
+            DOMAIN.version,
+            DOMAIN.chainId,
+            DOMAIN.verifyingContract
+        );
+
         const LocalEntrySC = await hre.ethers.getContractFactory('LocalEntry');
-        const localEntry = await LocalEntrySC.deploy();
+        const localEntry = await LocalEntrySC.deploy(eip712.target, poseidon.target);
 
         return { localEntry };
     }
@@ -42,7 +112,9 @@ describe('LocalEntry', function () {
         }
         await localEntry.register(publicKeys, signatures);
 
-        return { localEntry };
+        return { localEntry, signer1: { signer: signers[0], wallet: wallets[0] },
+        signer2: { signer: signers[1], wallet: wallets[1] },
+        other: { signer: signers[2], wallet: wallets[2] } };
     }
 
     function getWallets() {
@@ -59,6 +131,7 @@ describe('LocalEntry', function () {
                 false
             );
             wallets.push({
+                compressed: '0x' + wallet.publicKey.substring(4),
                 privateKey: wallet.privateKey,
                 publicKey:
                     '0x' + Buffer.from(pubKey).toString('hex').substring(2)
@@ -166,49 +239,37 @@ describe('LocalEntry', function () {
 
     describe('Submit transactions', function () {
         it('Should fail with sender not registered', async function () {
-            const { localEntry } = await loadFixture(
+            const { localEntry, signer1, signer2 } = await loadFixture(
                 deployLocalEntrySCWithPublicKeys
             );
 
             let signers = await hre.ethers.getSigners();
             await expect(
-                localEntry.connect(signers[2]).submitTx({
-                    txid: TX_ID,
-                    txType: 0,
-                    txData: TX_DATA,
-                    signature: SIGNATURE
-                })
+                localEntry.connect(signers[2]).submitTx(0,
+                    TX_DATA, signer1.wallet.publicKey)
             ).to.be.revertedWithCustomError(localEntry, 'SenderNotRegistered');
         });
 
-        it('Should fail with signature empty', async function () {
-            const { localEntry } = await loadFixture(
+        it('Should fail with public key not bound to AA contract', async function () {
+            const { localEntry, signer1, signer2, other } = await loadFixture(
                 deployLocalEntrySCWithPublicKeys
             );
 
             await expect(
-                localEntry.submitTx({
-                    txid: TX_ID,
-                    txType: 0,
-                    txData: TX_DATA,
-                    signature: '0x'
-                })
-            ).to.be.revertedWithCustomError(localEntry, 'SignatureEmpty');
+                localEntry.submitTx(0, TX_DATA, other.wallet.publicKey)
+            ).to.be.revertedWithCustomError(localEntry, 'PublicKeyNotBoundToAAContract')
+            .withArgs(other.wallet.publicKey, signer1.signer.address);
         });
 
         it('Should pass with sender registered', async function () {
-            const { localEntry } = await loadFixture(
+            const { localEntry, signer1 } = await loadFixture(
                 deployLocalEntrySCWithPublicKeys
             );
 
             const NEW_TX_ID =
                 '0x1234567812345678123456781234567812345678123456781234567812345679';
-            await localEntry.submitTx({
-                txid: NEW_TX_ID,
-                txType: 0,
-                txData: TX_DATA,
-                signature: SIGNATURE
-            });
+            const txData = await getTxData(signer1);
+            await localEntry.submitTx(txData.txType, txData.txData, signer1.wallet.publicKey);
             let signedTx = await localEntry.getTransaction(NEW_TX_ID);
             expect(signedTx.address).not.to.equal('0x');
             signedTx = await localEntry.getTransactionByIndex(0);
@@ -218,23 +279,14 @@ describe('LocalEntry', function () {
         });
 
         it('Should fail with transaction with the same txid exists', async function () {
-            const { localEntry } = await loadFixture(
+            const { localEntry, signer1 } = await loadFixture(
                 deployLocalEntrySCWithPublicKeys
             );
 
-            await localEntry.submitTx({
-                txid: TX_ID,
-                txType: 0,
-                txData: TX_DATA,
-                signature: SIGNATURE
-            });
+            const txData = await getTxData(signer1);
+            await localEntry.submitTx(txData.txType, txData.txData, signer1.wallet.publicKey);
             await expect(
-                localEntry.submitTx({
-                    txid: TX_ID,
-                    txType: 0,
-                    txData: TX_DATA,
-                    signature: SIGNATURE
-                })
+                localEntry.submitTx(txData.txType, txData.txData, signer1.wallet.publicKey)
             ).to.be.revertedWithCustomError(localEntry, 'TransactionExists');
         });
     });
