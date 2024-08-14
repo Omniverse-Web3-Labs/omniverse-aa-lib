@@ -100,7 +100,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error TokenNameLengthExceedLimit(uint256 nameLength);
 
-    constructor(address _sysConfig, bytes memory _AASignerPubkey, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) {
+    function initializeBase(address _sysConfig, bytes memory _AASignerPubkey, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) internal {
         poseidon = IPoseidon(_poseidon);
         eip712 = IOmniverseEIP712(_eip712);
 

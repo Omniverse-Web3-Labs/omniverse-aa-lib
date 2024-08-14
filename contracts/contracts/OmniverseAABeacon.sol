@@ -19,10 +19,6 @@ abstract contract OmniverseAABeacon is OmniverseAABase {
      */
     error TransactionAlreadyHandled(bytes32 txid);
 
-    constructor(address _sysConfig, bytes memory  _AASigner, Types.UTXO[] memory _utxos, address _poseidon, address _eip712)
-        OmniverseAABase(_sysConfig, _AASigner, _utxos, _poseidon, _eip712) {
-    }
-
     /**
      * @notice Handles an omniverse transaction sent from global exec server
      * @param omniTx The transaction data to be handled
