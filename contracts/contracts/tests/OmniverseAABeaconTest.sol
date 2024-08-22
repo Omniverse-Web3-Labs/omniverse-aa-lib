@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import "../OmniverseAABeacon.sol";
 
 contract OmniverseAABeaconTest is OmniverseAABeacon {
-    function initializeBeaconTest(address _sysConfig, bytes memory _AASigner, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) internal {
-        initializeBase(_sysConfig, _AASigner, _utxos, _poseidon, _eip712);
+    constructor(address _sysConfig, bytes memory _AASigner, Types.UTXO[] memory _utxos, address _eip712) {
+        initializeBase(_sysConfig, _AASigner, _utxos, _eip712);
     }
 
     function setLocalEntry(address _localEntry) public {

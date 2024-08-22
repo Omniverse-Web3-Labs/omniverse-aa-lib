@@ -24,8 +24,6 @@ abstract contract OmniverseAABase is IOmniverseAA {
     address AASignerAddr;
     // asset id mapping to UTXO set
     mapping(bytes32 => EnumerableUTXOMap.Bytes32ToUTXOMap) assetIdMapToUTXOSet;
-    // used to calculate Poseidon hash
-    IPoseidon poseidon;
     // used to verify EIP712 signature
     IOmniverseEIP712 eip712;
     // system config
@@ -100,8 +98,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
      */
     error TokenNameLengthExceedLimit(uint256 nameLength);
 
-    function initializeBase(address _sysConfig, bytes memory _AASignerPubkey, Types.UTXO[] memory _utxos, address _poseidon, address _eip712) internal {
-        poseidon = IPoseidon(_poseidon);
+    function initializeBase(address _sysConfig, bytes memory _AASignerPubkey, Types.UTXO[] memory _utxos, address _eip712) internal {
         eip712 = IOmniverseEIP712(_eip712);
 
         for (uint i = 0; i < _utxos.length; i++) {
@@ -425,7 +422,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
         );
 
         bytes memory txDataPacked = Utils.deployToBytes(deployTx);
-        txid = Utils.calTxId(txDataPacked, poseidon);
+        txid = keccak256(txDataPacked);
 
         if (gasInputs.length + gasOutputs.length > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(gasInputs.length + gasOutputs.length);
@@ -466,7 +463,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
         );
 
         bytes memory txDataPacked = Utils.MintToBytes(mintTx);
-        txid = Utils.calTxId(txDataPacked, poseidon);
+        txid = keccak256(txDataPacked);
 
         if (outputs.length + gasInputs.length + gasOutputs.length > sysConfig.maxTxUTXO) {
             revert UTXONumberExceedLimit(outputs.length + gasInputs.length + gasOutputs.length);
@@ -512,7 +509,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             UTXONumber = gasInputs.length + gasOutputs.length;
 
             bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
-            txid = Utils.calTxId(txDataPacked, poseidon);
+            txid = keccak256(txDataPacked);
 
             // update gas UTXOs
             _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
@@ -533,7 +530,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             UTXONumber = inputs.length + outputs.length + gasInputs.length + gasOutputs.length;
 
             bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
-            txid = Utils.calTxId(txDataPacked, poseidon);
+            txid = keccak256(txDataPacked);
 
             // update gas UTXOs
             _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);

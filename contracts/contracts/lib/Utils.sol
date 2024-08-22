@@ -5,36 +5,17 @@ pragma solidity ^0.8.24;
 // import 'hardhat/console.sol';
 import './Types.sol';
 
-interface IPoseidon {
-    function hashNToMNoPad(
-        uint256[] memory input,
-        uint256 numOutputs
-    ) external view returns (uint256[] memory output);
-}
-
-interface IOmniverseBeacon {
-    function balanceOf(
-        bytes32 assetId,
-        address account
-    ) external view returns (uint256);
-}
-
-interface IOmniverseTokenFactory {
-    function createOmniverseToken(
-        bytes32 assetId,
-        IOmniverseBeacon beacon
-    ) external returns (address);
-}
-
 library Utils {
     using Types for *;
 
-    function bytesToHexString(bytes memory data) internal pure returns (string memory) {
+    function bytesToHexString(
+        bytes memory data
+    ) internal pure returns (string memory) {
         bytes memory hexString = new bytes(2 * data.length);
 
         for (uint256 i = 0; i < data.length; i++) {
             uint8 byteValue = uint8(data[i]);
-            bytes memory hexChars = "0123456789abcdef";
+            bytes memory hexChars = '0123456789abcdef';
             hexString[2 * i] = hexChars[byteValue >> 4];
             hexString[2 * i + 1] = hexChars[byteValue & 0x0f];
         }
@@ -128,25 +109,47 @@ library Utils {
     function bytesToField64Array(
         bytes memory data
     ) internal pure returns (uint256[] memory) {
-        uint numChunks = data.length / 8;
+        uint256 numChunks = data.length / 8;
         uint remainBytesLen = data.length % 8;
-        uint256[] memory result = remainBytesLen > 0
-            ? new uint256[](numChunks + 1)
-            : new uint256[](numChunks);
-        for (uint i = 0; i < numChunks; ++i) {
-            bytes memory chunk = new bytes(8);
-            for (uint j; j < 8; ++j) {
-                chunk[8 - 1 - j] = bytes1(data[i * 8 + j]);
+        numChunks = remainBytesLen > 0 ? numChunks + 1 : numChunks;
+        uint256[] memory result = new uint256[](numChunks);
+
+        assembly {
+            // Pointer to the start of the input data
+            let dataPtr := add(data, 0x20)
+
+            // Pointer to the start of the result array
+            let resultPtr := add(result, 0x20)
+
+            for {
+                let i := 0
+            } lt(i, numChunks) {
+                i := add(i, 1)
+            } {
+                // Read the current 8-byte chunk
+                let chunkData := shr(192, mload(add(dataPtr, mul(i, 8))))
+                // Reverse the 8-byte chunk
+                let reversedChunk := 0
+                for {
+                    let j := 0
+                } lt(j, 8) {
+                    j := add(j, 1)
+                } {
+                    // Extract byte and shift it to the correct position
+                    reversedChunk := or(
+                        shl(
+                            mul(j, 8),
+                            and(shr(mul(sub(7, j), 8), chunkData), 0xFF)
+                        ),
+                        reversedChunk
+                    )
+                }
+
+                // Store the reversed chunk in the result array
+                mstore(add(resultPtr, mul(32, i)), reversedChunk)
             }
-            result[i] = uint256(bytes32(chunk)) >> 192;
         }
-        if (remainBytesLen > 0) {
-            bytes memory chunk = new bytes(8);
-            for (uint j; j < remainBytesLen; ++j) {
-                chunk[8 - 1 - j] = bytes1(data[numChunks * 8 + j]);
-            }
-            result[numChunks] = uint256(bytes32(chunk)) >> 192;
-        }
+
         return result;
     }
 
@@ -176,7 +179,7 @@ library Utils {
                         shl(224, and(shr(24, temp), 0xFF))
                     )
                 ),
-                or (
+                or(
                     or(
                         shl(216, and(shr(32, temp), 0xFF)),
                         shl(208, and(shr(40, temp), 0xFF))
@@ -266,21 +269,19 @@ library Utils {
         }
     }
 
-    function calTxId(
-        bytes memory txData,
-        IPoseidon poseidon
-    ) internal view returns (bytes32) {
-        uint256[] memory inputs = Utils.bytesToField64Array(txData);
-        uint256[] memory txHashOutputs = poseidon.hashNToMNoPad(inputs, 4);
-        return
-            bytes32(
-                abi.encodePacked(
-                    uintToBytes8Reverse(txHashOutputs[0]),
-                    uintToBytes8Reverse(txHashOutputs[1]),
-                    uintToBytes8Reverse(txHashOutputs[2]),
-                    uintToBytes8Reverse(txHashOutputs[3])
-                )
-            );
+    /**
+     * @dev Convert public key to omnniverse address and eth chain address
+     */
+    function convertPulicKey(
+        bytes calldata publicKey
+    ) internal pure returns (bytes32 omniAddress, address chainAddress) {
+        assembly {
+            let pk := mload(0x40)
+            omniAddress := calldataload(add(publicKey.offset, 0))
+            mstore(add(pk, 0x20), calldataload(add(publicKey.offset, 0)))
+            mstore(add(pk, 0x40), calldataload(add(publicKey.offset, 0x20)))
+            chainAddress := keccak256(add(pk, 0x20), 0x40)
+        }
     }
 
     /**
@@ -292,35 +293,42 @@ library Utils {
     function calAssetId(
         bytes8 salt,
         bytes memory originalNameBytes,
-        bytes32 deployer,
-        IPoseidon poseidon
-    ) internal view returns (bytes32) {
+        bytes32 deployer
+    ) internal pure returns (bytes32) {
         bytes memory nameBytes = new bytes(Types.TOKEN_NAME_LEN);
         for (uint i; i < originalNameBytes.length; ++i) {
             nameBytes[i] = originalNameBytes[i];
         }
         // console.logBytes24(bytes24(nameBytes));
         bytes memory data = abi.encodePacked(salt, nameBytes, deployer);
-        uint numChunks = data.length / Types.Chunk_Size;
-        uint256[] memory inputs = new uint256[](numChunks);
-        for (uint i = 0; i < numChunks; ++i) {
-            bytes memory chunk = new bytes(Types.Chunk_Size);
-            for (uint j; j < Types.Chunk_Size; ++j) {
-                chunk[Types.Chunk_Size - 1 - j] = bytes1(
-                    data[i * Types.Chunk_Size + j]
-                );
-            }
-            inputs[i] = uint256(bytes32(chunk)) >> 192;
-        }
-        uint256[] memory hashOutputs = poseidon.hashNToMNoPad(inputs, 4);
-        return
-            bytes32(
-                abi.encodePacked(
-                    uintToBytes8Reverse(hashOutputs[0]),
-                    uintToBytes8Reverse(hashOutputs[1]),
-                    uintToBytes8Reverse(hashOutputs[2]),
-                    uintToBytes8Reverse(hashOutputs[3])
-                )
-            );
+        return keccak256(data);
+    }
+
+    /**
+     * @notice comress the utxo
+     * @param assetId the omniverse asset id
+     * @param txid the transaction id
+     * @param index the transaction index
+     * @param omniAddress the omniverse address
+     * @param amount the asset amount
+     *
+     * @return the keccak256 of utxo
+     */
+    function compressUTXO(
+        bytes32 assetId,
+        bytes32 txid,
+        uint64 index,
+        bytes32 omniAddress,
+        uint128 amount
+    ) internal pure returns (bytes32) {
+        bytes memory packedData = abi.encodePacked(
+            assetId,
+            txid,
+            index,
+            omniAddress,
+            amount
+        );
+
+        return keccak256(packedData);
     }
 }
