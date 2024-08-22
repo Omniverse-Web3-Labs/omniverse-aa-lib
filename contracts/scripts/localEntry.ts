@@ -12,7 +12,6 @@ async function main() {
     parameters: {
       LocalEntryModule: {
         eip712: parameters.eip712,
-        poseidon: parameters.poseidon,
       }
     }
   });
