@@ -1,12 +1,22 @@
 import hre, { ethers } from "hardhat";
 
 export async function waitForTransactionReceipt(txHash: string, confirmationsRequired: number = 1) {
-    const provider = ethers.getDefaultProvider();
-    let receipt = await provider.getTransactionReceipt(txHash);
+    let receipt;
+    while (!receipt) {
+      try {
+        console.log("receipt",receipt);
+        receipt = await ethers.provider.getTransactionReceipt(txHash);
+      } catch (e) {
+        console.log("error", e);
+      }
+  
+      // Wait before checking again
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
 
-    while (!receipt || (await receipt.confirmations()) < confirmationsRequired) {
+    while (!receipt || (await receipt!.confirmations()) < confirmationsRequired) {
         await new Promise(resolve => setTimeout(resolve, 10000)); // wait 10 seconds
-        receipt = await provider.getTransactionReceipt(txHash);
+        receipt = await ethers.provider.getTransactionReceipt(txHash);
     }
 
     return receipt;
