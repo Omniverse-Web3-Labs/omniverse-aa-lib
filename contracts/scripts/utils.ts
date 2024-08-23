@@ -1,6 +1,6 @@
 import hre, { ethers } from "hardhat";
 
-export async function waitForTransactionReceipt(txHash: string, confirmationsRequired: number = 0) {
+export async function waitForTransactionReceipt(txHash: string, confirmationsRequired: number = 1) {
     const provider = ethers.getDefaultProvider();
     let receipt = await provider.getTransactionReceipt(txHash);
 
