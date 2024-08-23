@@ -2,6 +2,7 @@ import hre, { ethers } from "hardhat";
 import LocalEntryModule from "../ignition/modules/LocalEntry";
 import saveDeployInfo from "./saveDeployInfo";
 import fs from "fs";
+import { waitForConfirmations } from "./utils";
 
 const PARAMETER_FILE = "./scripts/parameters.json";
 
@@ -15,6 +16,8 @@ async function main() {
       }
     }
   });
+  
+  await waitForConfirmations(await ethers.provider.getBlockNumber());
 
   console.log(`LocalEntryModule deployed to: ${localEntry.target}`);
   

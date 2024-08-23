@@ -2,6 +2,7 @@ import hre, { ethers } from "hardhat";
 import SysConfigAA from "../ignition/modules/SysConfigAA";
 import saveDeployInfo from "./saveDeployInfo";
 import fs from "fs";
+import { waitForConfirmations } from "./utils";
 
 const PARAMETER_FILE = "./scripts/parameters.json";
 
@@ -22,6 +23,8 @@ async function main() {
       }
     }
   });
+  
+  await waitForConfirmations(await ethers.provider.getBlockNumber());
 
   console.log(`SysConfigAA deployed to: ${sysConfigAA.target}`);
   
