@@ -1,6 +1,6 @@
 import hre, { ethers } from "hardhat";
 
-export async function waitForTransactionReceipt(txHash: string, confirmationsRequired: number = 1) {
+export async function waitForTransactionReceipt(txHash: string, confirmationsRequired: number = 0) {
     let receipt;
     while (!receipt) {
       try {
@@ -22,7 +22,7 @@ export async function waitForTransactionReceipt(txHash: string, confirmationsReq
     return receipt;
 }
 
-export async function waitForConfirmations(currentBlockNumber: number, confirmationsRequired: number = 1) {
+export async function waitForConfirmations(currentBlockNumber: number, confirmationsRequired: number = 0) {
     let blockNumber = await ethers.provider.getBlockNumber();
 
     while (blockNumber < currentBlockNumber + confirmationsRequired) {
