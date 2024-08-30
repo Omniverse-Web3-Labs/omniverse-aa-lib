@@ -7,8 +7,9 @@ import "../lib/Types.sol";
 
 contract OmniverseAABaseTest is OmniverseAABase {
     using EnumerableUTXOMap for EnumerableUTXOMap.Bytes32ToUTXOMap;
-    constructor(address _sysConfig, bytes memory _AASigner, Types.UTXO[] memory _utxos, address _poseidon, address _eip712)
-        OmniverseAABase(_sysConfig, _AASigner, _utxos, _poseidon, _eip712) {
+
+    constructor(address _sysConfig, bytes memory _AASignerPubkey, Types.UTXO[] memory _utxos, address _eip712) {
+        initializeBase(_sysConfig, _AASignerPubkey, _utxos, _eip712);
     }
 
     function handleOmniverseTx(OmniverseTx calldata omniTx, bytes32[] calldata merkleProof, bytes calldata signerPubkey, bytes calldata customData) external {

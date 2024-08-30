@@ -122,9 +122,6 @@ describe('OmniverseAA', function () {
             utils.DOMAIN.verifyingContract
         );
 
-        const Poseidon = await hre.ethers.getContractFactory('Poseidon');
-        const poseidon = await Poseidon.deploy();
-
         const localEntry = await deployLocalEntry();
 
         // Omniverse system config
@@ -137,7 +134,6 @@ describe('OmniverseAA', function () {
             sysConfig.target,
             wallets[0].publicKey,
             [],
-            poseidon.target,
             eip712.target
         );
 
@@ -159,9 +155,6 @@ describe('OmniverseAA', function () {
             utils.DOMAIN.verifyingContract
         );
 
-        const Poseidon = await hre.ethers.getContractFactory('Poseidon');
-        const poseidon = await Poseidon.deploy();
-
         const localEntry = await deployLocalEntry();
 
         // Omniverse system config
@@ -174,7 +167,6 @@ describe('OmniverseAA', function () {
             sysConfig.target,
             wallets[0].publicKey,
             generateUTXOs(wallets[0].compressed),
-            poseidon.target,
             eip712.target
         );
 
@@ -200,9 +192,6 @@ describe('OmniverseAA', function () {
             utils.DOMAIN.chainId,
             utils.DOMAIN.verifyingContract
         );
-
-        const Poseidon = await hre.ethers.getContractFactory('Poseidon');
-        const poseidon = await Poseidon.deploy();
 
         let MockStateKeeper = null;
         let OmniverseAA = null;
@@ -232,7 +221,6 @@ describe('OmniverseAA', function () {
             sysConfig.target,
             wallets[0].publicKey,
             generateUTXOs(wallets[0].compressed),
-            poseidon.target,
             eip712.target
         );
 
@@ -290,9 +278,6 @@ describe('OmniverseAA', function () {
                 utils.DOMAIN.verifyingContract
             );
 
-            const Poseidon = await hre.ethers.getContractFactory('Poseidon');
-            const poseidon = await Poseidon.deploy();
-
             const localEntry = await deployLocalEntry();
 
             // Omniverse system config
@@ -305,7 +290,6 @@ describe('OmniverseAA', function () {
                 sysConfig.target,
                 wallets[0].publicKey,
                 [],
-                poseidon.target,
                 eip712.target
             );
 
@@ -328,9 +312,6 @@ describe('OmniverseAA', function () {
                 utils.DOMAIN.verifyingContract
             );
 
-            const Poseidon = await hre.ethers.getContractFactory('Poseidon');
-            const poseidon = await Poseidon.deploy();
-
             const localEntry = await deployLocalEntry();
 
             // Omniverse system config
@@ -344,7 +325,6 @@ describe('OmniverseAA', function () {
                 sysConfig.target,
                 wallets[0].publicKey,
                 generateUTXOs(wallets[0].compressed),
-                poseidon.target,
                 eip712.target
             );
 

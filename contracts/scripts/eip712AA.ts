@@ -2,6 +2,7 @@ import hre, { ethers } from "hardhat";
 import OmniverseEIP712 from "../ignition/modules/OmniverseEIP712";
 import saveDeployInfo from "./saveDeployInfo";
 import fs from "fs";
+import { waitForConfirmations } from "./utils";
 
 const PARAMETER_FILE = "./scripts/parameters.json";
 
@@ -18,6 +19,8 @@ async function main() {
       }
     }
   });
+  
+  await waitForConfirmations(await ethers.provider.getBlockNumber());
 
   console.log(`OmniverseEIP712 deployed to: ${eip712.target}`);
   
