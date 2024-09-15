@@ -211,7 +211,7 @@ library Utils {
                 nameBytes,
                 deploy.metadata.deployer,
                 uint128ToLittleEndianBytes(deploy.metadata.totalSupply),
-                uint128ToLittleEndianBytes(deploy.metadata.limit),
+                uint128ToLittleEndianBytes(deploy.metadata.mintAmount),
                 uint128ToLittleEndianBytes(deploy.metadata.price),
                 inputToBytes(deploy.feeInputs),
                 outputToBytes(deploy.feeOutputs)

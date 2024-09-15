@@ -129,7 +129,7 @@ contract OmniverseEIP712 is EIP712 {
                 bytes32(operation.metadata.salt),
                 keccak256(bytes(operation.metadata.name)),
                 operation.metadata.deployer,
-                uint256(operation.metadata.limit),
+                uint256(operation.metadata.mintAmount),
                 uint256(operation.metadata.price),
                 uint256(operation.metadata.totalSupply),
                 keccak256(inputsToEip712Bytes(operation.feeInputs)),

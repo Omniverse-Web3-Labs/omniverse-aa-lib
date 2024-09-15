@@ -452,7 +452,7 @@ describe('OmniverseAA', function () {
                 name: 'asdfasdfasdfasdfasdfasdfasdf',
                 deployer: signer,
                 totalSupply: METADATA_TOTAL_SUPPLY,
-                limit: METADATA_LIMIT,
+                mintAmount: METADATA_LIMIT,
                 price: METADATA_PRICE
             };
             await expect(omniverseAA.deploy(metadata))
@@ -475,7 +475,7 @@ describe('OmniverseAA', function () {
                 name: METADATA_NAME,
                 deployer: signer,
                 totalSupply: METADATA_TOTAL_SUPPLY,
-                limit: METADATA_LIMIT,
+                mintAmount: METADATA_LIMIT,
                 price: METADATA_PRICE
             };
             await omniverseAA.deploy(metadata);
@@ -709,7 +709,7 @@ describe('OmniverseAA', function () {
                             name: METADATA_NAME,
                             deployer: user.wallet.compressed,
                             totalSupply: METADATA_TOTAL_SUPPLY,
-                            limit: METADATA_LIMIT,
+                            mintAmount: METADATA_LIMIT,
                             price: METADATA_PRICE
                         },
                         signature: SIGNATURE,
@@ -762,7 +762,7 @@ describe('OmniverseAA', function () {
                             name: METADATA_NAME,
                             deployer: user.wallet.compressed,
                             totalSupply: METADATA_TOTAL_SUPPLY,
-                            limit: METADATA_LIMIT,
+                            mintAmount: METADATA_LIMIT,
                             price: METADATA_PRICE
                         },
                         signature: SIGNATURE,
@@ -809,7 +809,7 @@ describe('OmniverseAA', function () {
                             deployer:
                                 '0x1122334455667788112233445566778811223344556677881122334455667788',
                             totalSupply: METADATA_TOTAL_SUPPLY,
-                            limit: METADATA_LIMIT,
+                            mintAmount: METADATA_LIMIT,
                             price: METADATA_PRICE
                         },
                         signature: SIGNATURE,
@@ -867,7 +867,7 @@ describe('OmniverseAA', function () {
                             deployer:
                                 '0x1122334455667788112233445566778811223344556677881122334455667788',
                             totalSupply: METADATA_TOTAL_SUPPLY,
-                            limit: METADATA_LIMIT,
+                            mintAmount: METADATA_LIMIT,
                             price: METADATA_PRICE
                         },
                         signature: SIGNATURE,
@@ -921,7 +921,7 @@ describe('OmniverseAA', function () {
                             deployer:
                                 '0x1122334455667788112233445566778811223344556677881122334455667788',
                             totalSupply: METADATA_TOTAL_SUPPLY,
-                            limit: METADATA_LIMIT,
+                            mintAmount: METADATA_LIMIT,
                             price: METADATA_PRICE
                         },
                         signature: SIGNATURE,
