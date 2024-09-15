@@ -24,7 +24,7 @@ contract OmniverseEIP712 is EIP712 {
         keccak256('Output(uint128 amount,bytes32 address)');
     bytes32 private constant DEPLOY_TYPE_HASH =
         keccak256(
-            'Deploy(bytes8 salt,string name,bytes32 deployer,uint128 limit,uint128 price,uint128 total_supply,Input[] fee_inputs,Output[] fee_outputs)Input(bytes32 txid,uint32 index,uint128 amount,bytes32 address)Output(uint128 amount,bytes32 address)'
+            'Deploy(bytes8 salt,string name,bytes32 deployer,uint128 mint_amount,uint128 price,uint128 total_supply,Input[] fee_inputs,Output[] fee_outputs)Input(bytes32 txid,uint32 index,uint128 amount,bytes32 address)Output(uint128 amount,bytes32 address)'
         );
     bytes32 private constant MINT_TYPE_HASH =
         keccak256(
@@ -129,7 +129,7 @@ contract OmniverseEIP712 is EIP712 {
                 bytes32(operation.metadata.salt),
                 keccak256(bytes(operation.metadata.name)),
                 operation.metadata.deployer,
-                uint256(operation.metadata.limit),
+                uint256(operation.metadata.mintAmount),
                 uint256(operation.metadata.price),
                 uint256(operation.metadata.totalSupply),
                 keccak256(inputsToEip712Bytes(operation.feeInputs)),

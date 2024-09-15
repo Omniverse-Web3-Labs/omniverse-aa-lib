@@ -39,7 +39,7 @@ library Types {
         string name;
         bytes32 deployer;
         uint128 totalSupply;
-        uint128 limit;
+        uint128 mintAmount;
         uint128 price;
     }
 

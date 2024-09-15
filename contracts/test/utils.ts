@@ -17,7 +17,7 @@ export interface Deploy {
         name: string;
         deployer: string;
         totalSupply: string;
-        limit: string;
+        mintAmount: string;
         price: string;
     };
     signature: string;
@@ -67,7 +67,7 @@ const EIP712_DEPLOY_TYPES = {
         { name: 'salt', type: 'bytes8' },
         { name: 'name', type: 'string' },
         { name: 'deployer', type: 'bytes32' },
-        { name: 'limit', type: 'uint128' },
+        { name: 'mint_amount', type: 'uint128' },
         { name: 'price', type: 'uint128' },
         { name: 'total_supply', type: 'uint128' },
         { name: 'fee_inputs', type: 'Input[]' },
@@ -156,7 +156,7 @@ export async function typedSignDeploy(signer: any, deploy: Deploy) {
         name: deploy.metadata.name,
         deployer: deploy.metadata.deployer,
         total_supply: deploy.metadata.totalSupply,
-        limit: deploy.metadata.limit,
+        mint_amount: deploy.metadata.mintAmount,
         price: deploy.metadata.price,
         fee_inputs,
         fee_outputs
@@ -250,7 +250,7 @@ export function encodeDeploy(deploy: Deploy) {
             deploy.metadata.name,
             deploy.metadata.deployer,
             deploy.metadata.totalSupply,
-            deploy.metadata.limit,
+            deploy.metadata.mintAmount,
             deploy.metadata.price
         ],
         deploy.signature,
