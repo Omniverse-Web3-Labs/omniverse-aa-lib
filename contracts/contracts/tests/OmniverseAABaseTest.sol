@@ -66,6 +66,6 @@ contract OmniverseAABaseTest is OmniverseAABase {
     }
 
     function update(bytes32 assetId, bytes32 txid, Types.Input[] calldata inputs, Types.Output[] calldata outputs) public {
-        _updateUTXOs(assetId, txid, inputs, outputs);
+        _updateUTXOs(assetId, txid, inputs, outputs, 0);
     }
 }
