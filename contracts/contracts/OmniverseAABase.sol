@@ -188,8 +188,6 @@ abstract contract OmniverseAABase is IOmniverseAA {
             (, Types.UTXO memory utxo) = UTXOsOfAsset.at(i);
             UTXOs[i] = utxo;
         }
-
-        return UTXOs;
     }
 
     /**
@@ -241,8 +239,9 @@ abstract contract OmniverseAABase is IOmniverseAA {
      * @param txid The new transaction id
      * @param inputs The inputs of an omniverse transaction
      * @param outputs The outputs of an omniverse transaction
+     * @param startIndex From which index UTXOs are added
      */
-    function _updateUTXOs(bytes32 assetId, bytes32 txid, Types.Input[] memory inputs, Types.Output[] memory outputs) internal {
+    function _updateUTXOs(bytes32 assetId, bytes32 txid, Types.Input[] memory inputs, Types.Output[] memory outputs, uint startIndex) internal {
         EnumerableUTXOMap.Bytes32ToUTXOMap storage UTXOs = assetIdMapToUTXOSet[assetId];
         // update UTXOs
         // remove old UTXOs
@@ -250,23 +249,28 @@ abstract contract OmniverseAABase is IOmniverseAA {
             bytes32 key = keccak256(
                 abi.encodePacked(inputs[i].txid, inputs[i].index)
             );
+            /* Do not verify if the UTXO exists.
+            When converting to local, there may be new UTXOs in the inputs.
+            When converting to omniverse, all UTXOs are maintained by the contract, there is not need to verify.
+            */
             UTXOs.remove(key);
         }
 
         // add new UTXOs
-        for (uint64 i = 0; i < outputs.length; i++) {
+        for (uint i = 0; i < outputs.length; i++) {
             if (outputs[i].omniAddress != AASignerPubkey) {
                 continue;
             }
             
+            uint64 txIndex = uint64(i + startIndex);
             bytes32 key = keccak256(
-                abi.encodePacked(txid, i)
+                abi.encodePacked(txid, txIndex)
             );
             UTXOs.set(key, Types.UTXO(
                 AASignerPubkey,
                 assetId,
                 txid,
-                i,
+                txIndex,
                 outputs[i].amount
             ));
         }
@@ -428,7 +432,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             revert UTXONumberExceedLimit(gasInputs.length + gasOutputs.length);
         }
 
-        _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
+        _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs, 0);
 
         bytes memory txData = abi.encode(deployTx);
         unsignedTxs.push(OmniverseTxWithTxid(
@@ -469,11 +473,11 @@ abstract contract OmniverseAABase is IOmniverseAA {
             revert UTXONumberExceedLimit(outputs.length + gasInputs.length + gasOutputs.length);
         }
 
-        // update gas UTXOs
-        _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
-
         // update token UTXOs
-        _updateUTXOs(assetId, txid, new Types.Input[](0), outputs);
+        _updateUTXOs(assetId, txid, new Types.Input[](0), outputs, 0);
+
+        // update gas UTXOs
+        _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs, outputs.length);
 
         bytes memory txData = abi.encode(mintTx);
         unsignedTxs.push(OmniverseTxWithTxid(
@@ -512,7 +516,7 @@ abstract contract OmniverseAABase is IOmniverseAA {
             txid = keccak256(txDataPacked);
 
             // update gas UTXOs
-            _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs, 0);
         }
         else {
             (Types.Input[] memory gasInputs, Types.Output[] memory gasOutputs) = _getGas(new Types.Output[](0));
@@ -532,11 +536,11 @@ abstract contract OmniverseAABase is IOmniverseAA {
             bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
             txid = keccak256(txDataPacked);
 
-            // update gas UTXOs
-            _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs);
-
             // update token UTXOs
-            _updateUTXOs(assetId, txid, inputs, outputs);
+            _updateUTXOs(assetId, txid, inputs, outputs, 0);
+
+            // update gas UTXOs
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, gasInputs, gasOutputs, outputs.length);
         }
 
         if (UTXONumber > sysConfig.maxTxUTXO) {

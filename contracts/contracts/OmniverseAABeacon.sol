@@ -38,23 +38,23 @@ abstract contract OmniverseAABeacon is OmniverseAABase {
             bytes memory txDataPacked = Utils.deployToBytes(deployTx);
             txid = keccak256(txDataPacked);
             onDeploy(txid, ethAddr, deployTx, customData);
-            _updateUTXOs(sysConfig.feeConfig.assetId, txid, deployTx.feeInputs, deployTx.feeOutputs);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, deployTx.feeInputs, deployTx.feeOutputs, 0);
         }
         else if (omniTx.txType == Types.TxType.Mint) {
             Types.Mint memory mintTx = abi.decode(omniTx.txData, (Types.Mint));
             bytes memory txDataPacked = Utils.MintToBytes(mintTx);
             txid = keccak256(txDataPacked);
             onMint(txid, ethAddr, mintTx, customData);
-            _updateUTXOs(sysConfig.feeConfig.assetId, txid, mintTx.feeInputs, mintTx.feeOutputs);
-            _updateUTXOs(mintTx.assetId, txid, new Types.Input[](0), mintTx.outputs);
+            _updateUTXOs(mintTx.assetId, txid, new Types.Input[](0), mintTx.outputs, 0);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, mintTx.feeInputs, mintTx.feeOutputs, mintTx.outputs.length);
         }
         else if (omniTx.txType == Types.TxType.Transfer) {
             Types.Transfer memory transferTx = abi.decode(omniTx.txData, (Types.Transfer));
             bytes memory txDataPacked = Utils.TransferToBytes(transferTx);
             txid = keccak256(txDataPacked);
             onTransfer(txid, ethAddr, transferTx, customData);
-            _updateUTXOs(sysConfig.feeConfig.assetId, txid, transferTx.feeInputs, transferTx.feeOutputs);
-            _updateUTXOs(transferTx.assetId, txid, transferTx.inputs, transferTx.outputs);
+            _updateUTXOs(transferTx.assetId, txid, transferTx.inputs, transferTx.outputs, 0);
+            _updateUTXOs(sysConfig.feeConfig.assetId, txid, transferTx.feeInputs, transferTx.feeOutputs, transferTx.outputs.length);
         }
 
         bool txExist = IStateKeeperBeacon(sysConfig.stateKeeper).containsTxID(txid);
