@@ -1,0 +1,45 @@
+{
+	"eip712": {
+		"name": "Omniverse Transaction",
+		"version": "1",
+		"chainId": 1337,
+		"verifyContract": "0xd03A47C67F69880eA27Fd48da4600b2e35D349aC"
+	},
+	"sysConfigAA": {
+		"gasAssetId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"gasRecipient": "0x7947cf497935a5f3be881187710fbe139be9d80aa63df4f59c93ca320465e4bd",
+		"gasFee": 1,
+		"maxTxUTXO": 20,
+		"decimals": 12,
+		"tokenNameLimit": 24,
+		"stateKeeper": "0xA1a4bfAaF5f3a03e0331d0B74Fba20c17231C926",
+		"localEntry": "0x5821d86DE0B4E30997319eE446C6eE7C98533C83"
+	},
+	"localEntry": {},
+	"eip712AA": {
+		"name": "Omniverse Transaction",
+		"version": "1",
+		"chainId": 1337,
+		"verifyContract": "0x82E09210c8A8436e9FCeD3A969aC82bC6C227095"
+	},
+	"poseidon": {},
+	"transformer": {
+		"AASigner": {
+			"sk": "0x0cc0c2de7e8c30525b4ca3b9e0b9703fb29569060d403261055481df7014f7fa"
+		},
+		"assetId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+		"utxos": [
+			{
+				"txid": "0x574c52eca0d4d0db9feacd2fd0a4be349a6e27407d20e27da81ce1d479698c3d",
+				"omniAddress": "0x43ebb39f93001baab55ff811fc46e087b908b5657cf8a69825827967e5760df9",
+				"assetId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+				"index": "1",
+				"amount": "100000000000000000"
+			}
+		],
+		"erc20": "0x6823C94B4f0Bf090e8c61Db788913894D669d1A6",
+		"sysConfigAA": "0xBb6038A8609ef8dA2B83C4b729805c12106047ff",
+		"poseidon": "0xd7EDe5868287411D3e197719dd5F98b74871b3Fd",
+		"eip712": "0x273F41B5DC8097491A61231d36cD76B7594DBD04"
+	}
+}

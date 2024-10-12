@@ -23,8 +23,6 @@ async function main() {
       }
     }
   });
-  
-  await waitForConfirmations(await ethers.provider.getBlockNumber());
 
   console.log(`SysConfigAA deployed to: ${sysConfigAA.target}`);
   

@@ -19,8 +19,6 @@ async function main() {
       }
     }
   });
-  
-  await waitForConfirmations(await ethers.provider.getBlockNumber());
 
   console.log(`OmniverseEIP712 deployed to: ${eip712.target}`);
   

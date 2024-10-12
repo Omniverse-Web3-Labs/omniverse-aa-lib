@@ -16,8 +16,6 @@ async function main() {
       }
     }
   });
-  
-  await waitForConfirmations(await ethers.provider.getBlockNumber());
 
   console.log(`LocalEntryModule deployed to: ${localEntry.target}`);
   
